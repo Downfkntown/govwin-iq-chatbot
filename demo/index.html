@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovWin IQ Chatbot Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 900px;
+            height: 700px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+        }
+
+        .message.bot .message-avatar {
+            background: #007bff;
+        }
+
+        .message.user .message-avatar {
+            background: #28a745;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .message-suggestions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 16px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-textarea {
+            resize: none;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .chat-textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .send-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .send-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 2px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6c757d;
+            animation: typing 1.5s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                opacity: 0.3;
+            }
+            30% {
+                opacity: 1;
+            }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .api-settings {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .api-url-input {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: inherit;
+            width: 300px;
+            padding: 2px 4px;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>GovWin IQ Chatbot</h1>
+            <p>Customer Success Assistant Demo</p>
+        </div>
+
+        <div class="connection-status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div class="api-settings">
+                API: <input type="text" class="api-url-input" id="apiUrl" value="http://localhost:3001/api/v1" placeholder="API Base URL">
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div>Hi! I'm your GovWin IQ assistant. I can help you with searches, navigation, reports, and general questions about the platform. How can I assist you today?</div>
+                    <div class="message-time" id="welcomeTime"></div>
+                    <div class="message-suggestions">
+                        <div class="suggestion-chip" onclick="sendSuggestion('Help me search for opportunities')">Search for opportunities</div>
+                        <div class="suggestion-chip" onclick="sendSuggestion('Show me navigation tips')">Navigation help</div>
+                        <div class="suggestion-chip" onclick="sendSuggestion('How do I generate reports?')">Generate reports</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">🤖</div>
+            <div>
+                Assistant is typing
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-group">
+                <textarea 
+                    class="chat-textarea" 
+                    id="messageInput" 
+                    placeholder="Type your message..."
+                    rows="1"></textarea>
+            </div>
+            <button class="send-button" id="sendButton" onclick="sendMessage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        class ChatBot {
+            constructor() {
+                this.sessionId = this.generateSessionId();
+                this.apiBaseUrl = document.getElementById('apiUrl').value;
+                this.isConnected = false;
+                this.messageHistory = [];
+                
+                this.initializeEventListeners();
+                this.checkApiConnection();
+                this.updateWelcomeTime();
+            }
+
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            initializeEventListeners() {
+                const messageInput = document.getElementById('messageInput');
+                const sendButton = document.getElementById('sendButton');
+                const apiUrlInput = document.getElementById('apiUrl');
+
+                // Handle Enter key in textarea
+                messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                // Auto-resize textarea
+                messageInput.addEventListener('input', (e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                });
+
+                // Update API URL
+                apiUrlInput.addEventListener('change', (e) => {
+                    this.apiBaseUrl = e.target.value;
+                    this.checkApiConnection();
+                });
+            }
+
+            updateWelcomeTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('welcomeTime').textContent = timeString;
+            }
+
+            async checkApiConnection() {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/system/health`, {
+                        method: 'GET',
+                        timeout: 5000
+                    });
+
+                    if (response.ok) {
+                        this.isConnected = true;
+                        statusDot.classList.add('connected');
+                        statusText.textContent = 'Connected';
+                    } else {
+                        throw new Error('API not responding');
+                    }
+                } catch (error) {
+                    this.isConnected = false;
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'API Unavailable (Demo Mode)';
+                }
+            }
+
+            async sendMessage() {
+                const messageInput = document.getElementById('messageInput');
+                const message = messageInput.value.trim();
+
+                if (!message) return;
+
+                // Add user message to chat
+                this.addMessage('user', message);
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+
+                // Show typing indicator
+                this.showTypingIndicator();
+
+                try {
+                    if (this.isConnected) {
+                        // Send to real API
+                        const response = await this.callApi(message);
+                        this.hideTypingIndicator();
+                        this.addMessage('bot', response.message, response.suggestions);
+                    } else {
+                        // Demo mode with mock responses
+                        const response = this.getMockResponse(message);
+                        setTimeout(() => {
+                            this.hideTypingIndicator();
+                            this.addMessage('bot', response.message, response.suggestions);
+                        }, 1500);
+                    }
+                } catch (error) {
+                    this.hideTypingIndicator();
+                    this.addErrorMessage(`Error: ${error.message}`);
+                }
+            }
+
+            async callApi(message) {
+                const response = await fetch(`${this.apiBaseUrl}/chat/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': this.generateRequestId()
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: this.sessionId,
+                        userId: 'demo_user',
+                        context: {
+                            platform: 'web_demo',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            getMockResponse(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                // Mock responses based on keywords
+                if (lowerMessage.includes('search') || lowerMessage.includes('opportunity')) {
+                    return {
+                        message: "I can help you search for opportunities in GovWin IQ. You can search by keywords, agency, NAICS codes, or set-aside types. Would you like me to guide you through the advanced search options?",
+                        suggestions: ["Advanced search options", "Search by agency", "Filter by NAICS codes"]
+                    };
+                }
+                
+                if (lowerMessage.includes('navigation') || lowerMessage.includes('navigate')) {
+                    return {
+                        message: "Here are some navigation tips for GovWin IQ:\n\n• Use the main dashboard to get an overview\n• The search bar is available on every page\n• Check 'My Opportunities' for saved items\n• Use filters to narrow down results\n\nWhat specific area would you like help navigating?",
+                        suggestions: ["Dashboard overview", "Search tips", "My Opportunities"]
+                    };
+                }
+                
+                if (lowerMessage.includes('report') || lowerMessage.includes('generate')) {
+                    return {
+                        message: "GovWin IQ offers several reporting options:\n\n• Opportunity reports\n• Market intelligence reports\n• Custom analytics dashboards\n• Export to Excel/PDF\n\nWhich type of report are you interested in generating?",
+                        suggestions: ["Opportunity reports", "Market intelligence", "Custom dashboards"]
+                    };
+                }
+                
+                if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+                    return {
+                        message: "Hello! I'm here to help you navigate GovWin IQ and find the information you need. I can assist with searches, reports, platform navigation, and answer questions about features. What can I help you with today?",
+                        suggestions: ["Search for opportunities", "Generate reports", "Platform navigation"]
+                    };
+                }
+
+                // Default response
+                return {
+                    message: "I understand you're asking about: \"" + message + "\"\n\nI can help you with:\n• Searching for opportunities and vendors\n• Navigating the GovWin IQ platform\n• Generating reports and analytics\n• Understanding platform features\n\nCould you be more specific about what you'd like to know?",
+                    suggestions: ["Search assistance", "Navigation help", "Report generation"]
+                };
+            }
+
+            addMessage(sender, content, suggestions = []) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const avatar = sender === 'bot' ? '🤖' : '👤';
+                
+                let suggestionsHtml = '';
+                if (suggestions && suggestions.length > 0) {
+                    suggestionsHtml = '<div class="message-suggestions">' + 
+                        suggestions.map(suggestion => 
+                            `<div class="suggestion-chip" onclick="sendSuggestion('${suggestion}')">${suggestion}</div>`
+                        ).join('') + 
+                    '</div>';
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${avatar}</div>
+                    <div class="message-content">
+                        <div style="white-space: pre-line">${content}</div>
+                        <div class="message-time">${timeString}</div>
+                        ${suggestionsHtml}
+                    </div>
+                `;
+
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Store in history
+                this.messageHistory.push({ sender, content, timestamp: now });
+            }
+
+            addErrorMessage(message) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = message;
+                messagesContainer.appendChild(errorDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            showTypingIndicator() {
+                document.getElementById('typingIndicator').style.display = 'flex';
+                document.getElementById('sendButton').disabled = true;
+            }
+
+            hideTypingIndicator() {
+                document.getElementById('typingIndicator').style.display = 'none';
+                document.getElementById('sendButton').disabled = false;
+            }
+
+            generateRequestId() {
+                return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+        }
+
+        // Global function for suggestion chips
+        function sendSuggestion(text) {
+            document.getElementById('messageInput').value = text;
+            chatBot.sendMessage();
+        }
+
+        // Global function for send button
+        function sendMessage() {
+            chatBot.sendMessage();
+        }
+
+        // Initialize the chatbot when page loads
+        let chatBot;
+        document.addEventListener('DOMContentLoaded', () => {
+            chatBot = new ChatBot();
+        });
+    </script>
+</body>
+</html>
