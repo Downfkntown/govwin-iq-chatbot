@@ -1,0 +1,220 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-09",
+  
+  "conversationFlow": {
+    "defaultTimeout": 300,
+    "maxTurns": 20,
+    "fallbackThreshold": 3,
+    "confidenceThreshold": 0.7,
+    "contextRetentionMinutes": 60,
+    "maxContextHistory": 10
+  },
+
+  "responseSettings": {
+    "maxLength": 2000,
+    "typingDelay": 1000,
+    "useTypingIndicator": true,
+    "includeTimestamp": false,
+    "includeSuggestedActions": true,
+    "maxSuggestions": 3
+  },
+
+  "intentRecognition": {
+    "enabled": true,
+    "fallbackIntent": "general_help",
+    "multiIntentHandling": true,
+    "intentConfidenceThreshold": 0.6,
+    "entityExtractionEnabled": true
+  },
+
+  "templates": {
+    "greeting": {
+      "primary": "Hi! I'm your GovWin IQ assistant. I can help you with searches, navigation, reports, and general questions about the platform. How can I assist you today?",
+      "variants": [
+        "Hello! I'm here to help you make the most of GovWin IQ. What would you like to know?",
+        "Welcome to GovWin IQ support! I can help with searches, reports, navigation, and more. What can I do for you?",
+        "Hi there! I'm your GovWin IQ helper. Whether you need search assistance, report guidance, or platform tips, I'm here to help!"
+      ],
+      "timeBasedVariants": {
+        "morning": "Good morning! Ready to tackle some GovWin IQ tasks today? How can I help?",
+        "afternoon": "Good afternoon! What GovWin IQ challenges can I help you solve?",
+        "evening": "Good evening! How can I assist you with GovWin IQ tonight?"
+      }
+    },
+
+    "farewell": {
+      "primary": "Thanks for using GovWin IQ support! Feel free to reach out anytime you need assistance.",
+      "variants": [
+        "Glad I could help! Don't hesitate to ask if you have more GovWin IQ questions.",
+        "You're all set! Come back anytime you need GovWin IQ assistance.",
+        "Happy to help! Remember, I'm here whenever you need GovWin IQ support."
+      ]
+    },
+
+    "clarification": {
+      "primary": "I want to make sure I understand correctly. Could you provide a bit more detail about what you're looking for?",
+      "variants": [
+        "Can you help me understand what specific aspect you'd like help with?",
+        "I'd like to give you the best assistance possible. Could you elaborate on your request?",
+        "To provide the most accurate help, could you share more details about what you need?"
+      ]
+    },
+
+    "fallback": {
+      "primary": "I'm not sure I understand that request. Could you try rephrasing, or would you like me to show you what I can help with?",
+      "variants": [
+        "I didn't quite catch that. Could you rephrase your question, or would you like to see my available help topics?",
+        "I'm having trouble understanding. Could you try asking in a different way?",
+        "That's not something I recognize. Would you like me to show you what I can assist with?"
+      ],
+      "withSuggestions": "I'm not sure about that, but I can help you with:\n• Search assistance\n• Navigation guidance\n• Report generation\n• Platform features\n\nWhat would you like to explore?"
+    },
+
+    "error": {
+      "system": "I'm experiencing some technical difficulties. Please try again in a moment, or contact support if the issue persists.",
+      "timeout": "It looks like our conversation timed out. Feel free to start a new chat whenever you're ready!",
+      "rateLimit": "You're asking questions pretty quickly! Please wait a moment before sending your next message.",
+      "maintenance": "I'm currently undergoing maintenance. Please check back in a few minutes. Thanks for your patience!"
+    },
+
+    "suggestions": {
+      "search": [
+        "Try searching for opportunities",
+        "Look up contract vehicles",
+        "Find agency information",
+        "Search for past awards"
+      ],
+      "navigation": [
+        "Go to Dashboard",
+        "View My Opportunities",
+        "Check Recent Activity",
+        "Access Reports"
+      ],
+      "general": [
+        "Show me search tips",
+        "Help with reports",
+        "Navigation guidance",
+        "Platform features"
+      ]
+    }
+  },
+
+  "personalitySettings": {
+    "tone": "helpful",
+    "formality": "professional-friendly",
+    "enthusiasm": "moderate",
+    "empathy": "high",
+    "technicalLevel": "adaptive"
+  },
+
+  "contextHandling": {
+    "trackPreviousQuestions": true,
+    "rememberUserPreferences": true,
+    "carryForwardSearchTerms": true,
+    "maintainSessionContext": true,
+    "contextSummaryEnabled": true
+  },
+
+  "escalation": {
+    "humanHandoffEnabled": true,
+    "escalationTriggers": [
+      "account_issues",
+      "billing_questions",
+      "technical_problems",
+      "feature_requests",
+      "complaints"
+    ],
+    "escalationMessage": "I think this might be better handled by our human support team. Let me connect you with someone who can provide more detailed assistance.",
+    "escalationOptions": [
+      "Submit support ticket",
+      "Schedule a call",
+      "Chat with support",
+      "Send email"
+    ]
+  },
+
+  "knowledgeBase": {
+    "searchEnabled": true,
+    "maxSearchResults": 5,
+    "searchConfidenceThreshold": 0.5,
+    "includeSourceLinks": true,
+    "enableRelatedTopics": true,
+    "cacheSearchResults": true,
+    "cacheDurationMinutes": 30
+  },
+
+  "analytics": {
+    "trackConversationFlow": true,
+    "trackUserSatisfaction": true,
+    "trackCommonQuestions": true,
+    "trackEscalations": true,
+    "sessionAnalytics": true
+  },
+
+  "integrations": {
+    "govwinApi": {
+      "enabled": true,
+      "realTimeSearch": true,
+      "cacheResults": true,
+      "maxRetries": 3,
+      "timeoutSeconds": 30
+    },
+    "ticketingSystem": {
+      "enabled": true,
+      "autoCreateTickets": false,
+      "ticketPriority": "normal",
+      "assignmentRules": "round_robin"
+    },
+    "notifications": {
+      "enabled": true,
+      "channels": ["email", "slack"],
+      "escalationNotifications": true,
+      "errorNotifications": true
+    }
+  },
+
+  "multilingual": {
+    "enabled": false,
+    "defaultLanguage": "en-US",
+    "supportedLanguages": ["en-US"],
+    "autoDetectLanguage": false,
+    "translationProvider": "none"
+  },
+
+  "accessibility": {
+    "screenReaderSupport": true,
+    "keyboardNavigation": true,
+    "highContrastMode": false,
+    "altTextForImages": true,
+    "readableTimestamps": true
+  },
+
+  "testing": {
+    "debugMode": false,
+    "logConversations": true,
+    "mockResponses": false,
+    "testUserIds": [],
+    "a_bTesting": {
+      "enabled": false,
+      "experiments": []
+    }
+  },
+
+  "security": {
+    "sanitizeInput": true,
+    "rateLimitPerUser": 60,
+    "rateLimitWindow": 60,
+    "blockSuspiciousPatterns": true,
+    "logSecurityEvents": true,
+    "encryptConversationLogs": false
+  },
+
+  "performance": {
+    "responseOptimization": true,
+    "cacheCommonResponses": true,
+    "asyncProcessing": true,
+    "batchRequestsEnabled": false,
+    "compressionEnabled": true
+  }
+}

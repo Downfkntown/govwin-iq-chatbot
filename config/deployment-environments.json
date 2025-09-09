@@ -1,0 +1,728 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-09",
+  "description": "Environment-specific configuration settings for GovWin IQ Chatbot deployment",
+
+  "development": {
+    "environment": {
+      "name": "development",
+      "displayName": "Development",
+      "description": "Local development environment",
+      "debug": true,
+      "logLevel": "debug"
+    },
+
+    "server": {
+      "protocol": "http",
+      "host": "localhost",
+      "port": 3000,
+      "baseUrl": "http://localhost:3000",
+      "apiBasePath": "/api/v1",
+      "timeout": 60000,
+      "keepAlive": true,
+      "compression": false
+    },
+
+    "database": {
+      "type": "mongodb",
+      "host": "localhost",
+      "port": 27017,
+      "name": "govwin_iq_chatbot_dev",
+      "auth": false,
+      "ssl": false,
+      "connectionPool": {
+        "min": 1,
+        "max": 5,
+        "acquireTimeout": 30000
+      },
+      "backup": {
+        "enabled": false,
+        "schedule": "0 2 * * *",
+        "retention": "7d"
+      }
+    },
+
+    "cache": {
+      "type": "memory",
+      "host": "localhost",
+      "port": 6379,
+      "database": 0,
+      "password": null,
+      "ttl": 3600,
+      "maxMemory": "100mb"
+    },
+
+    "external_apis": {
+      "govwin": {
+        "baseUrl": "https://api-sandbox.govwin.com",
+        "timeout": 30000,
+        "rateLimit": {
+          "requests": 1000,
+          "period": "hour"
+        },
+        "retry": {
+          "attempts": 3,
+          "delay": 1000
+        }
+      },
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "model": "gpt-3.5-turbo",
+        "maxTokens": 2000,
+        "temperature": 0.7,
+        "timeout": 30000
+      }
+    },
+
+    "security": {
+      "cors": {
+        "origin": ["http://localhost:3000", "http://localhost:3001"],
+        "credentials": true
+      },
+      "rateLimit": {
+        "windowMs": 900000,
+        "max": 1000,
+        "skipSuccessfulRequests": false
+      },
+      "jwt": {
+        "expiresIn": "24h",
+        "algorithm": "HS256"
+      },
+      "encryption": {
+        "algorithm": "aes-256-gcm",
+        "keyDerivation": "pbkdf2"
+      }
+    },
+
+    "features": {
+      "chatbot": {
+        "enabled": true,
+        "multiSession": true,
+        "contextRetention": true,
+        "analytics": false
+      },
+      "govwinIntegration": {
+        "enabled": true,
+        "realTimeSync": false,
+        "caching": true
+      },
+      "userManagement": {
+        "enabled": true,
+        "registration": true,
+        "profileManagement": true
+      }
+    },
+
+    "monitoring": {
+      "healthChecks": {
+        "enabled": true,
+        "interval": 30000
+      },
+      "metrics": {
+        "enabled": true,
+        "prometheus": false
+      },
+      "logging": {
+        "level": "debug",
+        "console": true,
+        "file": false,
+        "format": "pretty"
+      },
+      "tracing": {
+        "enabled": false
+      }
+    },
+
+    "deployment": {
+      "platform": "local",
+      "autoRestart": true,
+      "processManager": "nodemon",
+      "hotReload": true
+    }
+  },
+
+  "staging": {
+    "environment": {
+      "name": "staging",
+      "displayName": "Staging",
+      "description": "Staging environment for testing",
+      "debug": false,
+      "logLevel": "info"
+    },
+
+    "server": {
+      "protocol": "https",
+      "host": "0.0.0.0",
+      "port": 443,
+      "baseUrl": "https://govwin-iq-chatbot-staging.herokuapp.com",
+      "apiBasePath": "/api/v1",
+      "timeout": 30000,
+      "keepAlive": true,
+      "compression": true
+    },
+
+    "database": {
+      "type": "mongodb_atlas",
+      "cluster": "staging-cluster-0",
+      "name": "govwin_iq_chatbot_staging",
+      "auth": true,
+      "ssl": true,
+      "retryWrites": true,
+      "w": "majority",
+      "connectionPool": {
+        "min": 2,
+        "max": 10,
+        "acquireTimeout": 30000
+      },
+      "backup": {
+        "enabled": true,
+        "schedule": "0 3 * * *",
+        "retention": "14d",
+        "compression": true
+      }
+    },
+
+    "cache": {
+      "type": "redis",
+      "provider": "heroku_redis",
+      "plan": "mini",
+      "ssl": true,
+      "maxMemory": "25mb",
+      "evictionPolicy": "allkeys-lru",
+      "ttl": 1800,
+      "clustering": false
+    },
+
+    "external_apis": {
+      "govwin": {
+        "baseUrl": "https://api-staging.govwin.com",
+        "timeout": 30000,
+        "rateLimit": {
+          "requests": 500,
+          "period": "hour"
+        },
+        "retry": {
+          "attempts": 3,
+          "delay": 2000,
+          "backoff": "exponential"
+        }
+      },
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "model": "gpt-4",
+        "maxTokens": 2000,
+        "temperature": 0.7,
+        "timeout": 45000
+      }
+    },
+
+    "security": {
+      "cors": {
+        "origin": ["https://govwin-iq-staging.com"],
+        "credentials": true
+      },
+      "rateLimit": {
+        "windowMs": 900000,
+        "max": 200,
+        "skipSuccessfulRequests": true
+      },
+      "jwt": {
+        "expiresIn": "8h",
+        "algorithm": "HS256"
+      },
+      "encryption": {
+        "algorithm": "aes-256-gcm",
+        "keyDerivation": "scrypt"
+      },
+      "headers": {
+        "hsts": true,
+        "csp": true,
+        "xssProtection": true
+      }
+    },
+
+    "features": {
+      "chatbot": {
+        "enabled": true,
+        "multiSession": true,
+        "contextRetention": true,
+        "analytics": true,
+        "a_bTesting": true
+      },
+      "govwinIntegration": {
+        "enabled": true,
+        "realTimeSync": true,
+        "caching": true,
+        "fallbackMode": true
+      },
+      "userManagement": {
+        "enabled": true,
+        "registration": true,
+        "profileManagement": true,
+        "roleBasedAccess": true
+      }
+    },
+
+    "monitoring": {
+      "healthChecks": {
+        "enabled": true,
+        "interval": 30000,
+        "timeout": 5000
+      },
+      "metrics": {
+        "enabled": true,
+        "prometheus": true,
+        "customMetrics": true
+      },
+      "logging": {
+        "level": "info",
+        "console": false,
+        "file": true,
+        "format": "json",
+        "aggregation": "papertrail"
+      },
+      "tracing": {
+        "enabled": true,
+        "sampler": 0.1
+      },
+      "alerts": {
+        "enabled": true,
+        "channels": ["slack", "email"],
+        "thresholds": {
+          "responseTime": 2000,
+          "errorRate": 0.05,
+          "uptime": 0.99
+        }
+      }
+    },
+
+    "deployment": {
+      "platform": "heroku",
+      "dynoType": "standard-1x",
+      "replicas": 2,
+      "autoScale": false,
+      "buildpacks": ["heroku/nodejs"],
+      "addons": ["heroku-redis:mini", "papertrail:choklad"],
+      "releasePhase": "npm run db:migrate"
+    }
+  },
+
+  "production": {
+    "environment": {
+      "name": "production",
+      "displayName": "Production",
+      "description": "Production environment",
+      "debug": false,
+      "logLevel": "warn"
+    },
+
+    "server": {
+      "protocol": "https",
+      "host": "0.0.0.0",
+      "port": 443,
+      "baseUrl": "https://chatbot.govwin.com",
+      "apiBasePath": "/api/v1",
+      "timeout": 30000,
+      "keepAlive": true,
+      "compression": true,
+      "gracefulShutdown": true,
+      "shutdownTimeout": 15000
+    },
+
+    "database": {
+      "type": "aws_documentdb",
+      "cluster": "prod-cluster",
+      "instances": 3,
+      "instanceClass": "db.r5.large",
+      "name": "govwin_iq_chatbot_prod",
+      "auth": true,
+      "ssl": true,
+      "encryption": true,
+      "multiAz": true,
+      "connectionPool": {
+        "min": 5,
+        "max": 25,
+        "acquireTimeout": 30000
+      },
+      "backup": {
+        "enabled": true,
+        "schedule": "0 2 * * *",
+        "retention": "30d",
+        "compression": true,
+        "encryption": true,
+        "crossRegion": true,
+        "pointInTimeRecovery": true
+      },
+      "maintenance": {
+        "window": "sun:03:00-sun:04:00",
+        "autoMinorVersionUpgrade": true
+      }
+    },
+
+    "cache": {
+      "type": "aws_elasticache",
+      "engine": "redis",
+      "nodeType": "cache.t3.micro",
+      "numNodes": 3,
+      "ssl": true,
+      "auth": true,
+      "encryption": {
+        "atRest": true,
+        "inTransit": true
+      },
+      "maxMemory": "512mb",
+      "evictionPolicy": "allkeys-lru",
+      "ttl": 3600,
+      "clustering": true,
+      "failover": {
+        "enabled": true,
+        "multiAz": true
+      }
+    },
+
+    "external_apis": {
+      "govwin": {
+        "baseUrl": "https://api.govwin.com",
+        "timeout": 30000,
+        "rateLimit": {
+          "requests": 1000,
+          "period": "hour"
+        },
+        "retry": {
+          "attempts": 5,
+          "delay": 2000,
+          "backoff": "exponential",
+          "maxDelay": 30000
+        },
+        "circuitBreaker": {
+          "enabled": true,
+          "threshold": 10,
+          "timeout": 60000,
+          "resetTimeout": 30000
+        }
+      },
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "model": "gpt-4",
+        "maxTokens": 2000,
+        "temperature": 0.7,
+        "timeout": 45000,
+        "fallbackModel": "gpt-3.5-turbo"
+      }
+    },
+
+    "security": {
+      "cors": {
+        "origin": ["https://govwin.com", "https://app.govwin.com"],
+        "credentials": true
+      },
+      "rateLimit": {
+        "windowMs": 900000,
+        "max": 100,
+        "skipSuccessfulRequests": true,
+        "store": "redis"
+      },
+      "jwt": {
+        "expiresIn": "4h",
+        "algorithm": "RS256",
+        "issuer": "govwin-iq-chatbot",
+        "audience": "govwin-users"
+      },
+      "encryption": {
+        "algorithm": "aes-256-gcm",
+        "keyDerivation": "scrypt",
+        "keyRotation": "monthly"
+      },
+      "headers": {
+        "hsts": true,
+        "csp": true,
+        "xssProtection": true,
+        "frameOptions": "DENY",
+        "contentTypeOptions": true
+      },
+      "waf": {
+        "enabled": true,
+        "rules": ["common", "sqli", "xss"],
+        "ipWhitelist": [],
+        "geoBlocking": false
+      }
+    },
+
+    "features": {
+      "chatbot": {
+        "enabled": true,
+        "multiSession": true,
+        "contextRetention": true,
+        "analytics": true,
+        "a_bTesting": true,
+        "advancedNlp": true
+      },
+      "govwinIntegration": {
+        "enabled": true,
+        "realTimeSync": true,
+        "caching": true,
+        "fallbackMode": true,
+        "dataValidation": true
+      },
+      "userManagement": {
+        "enabled": true,
+        "registration": false,
+        "profileManagement": true,
+        "roleBasedAccess": true,
+        "ssoIntegration": true
+      }
+    },
+
+    "monitoring": {
+      "healthChecks": {
+        "enabled": true,
+        "interval": 15000,
+        "timeout": 5000,
+        "endpoints": ["/health", "/health/deep"]
+      },
+      "metrics": {
+        "enabled": true,
+        "prometheus": true,
+        "customMetrics": true,
+        "retention": "90d"
+      },
+      "logging": {
+        "level": "warn",
+        "console": false,
+        "file": true,
+        "format": "json",
+        "aggregation": "cloudwatch",
+        "retention": "30d",
+        "encryption": true
+      },
+      "tracing": {
+        "enabled": true,
+        "sampler": 0.01,
+        "jaeger": true
+      },
+      "alerts": {
+        "enabled": true,
+        "channels": ["pagerduty", "slack", "email"],
+        "escalation": true,
+        "thresholds": {
+          "responseTime": 1000,
+          "errorRate": 0.01,
+          "uptime": 0.999,
+          "cpuUsage": 0.8,
+          "memoryUsage": 0.85
+        }
+      }
+    },
+
+    "deployment": {
+      "platform": "aws",
+      "service": "ecs",
+      "cluster": "govwin-iq-chatbot-prod",
+      "taskDefinition": "govwin-iq-chatbot:latest",
+      "desiredCount": 3,
+      "autoScale": {
+        "enabled": true,
+        "minCapacity": 2,
+        "maxCapacity": 10,
+        "targetCpu": 70,
+        "targetMemory": 80,
+        "scaleOutCooldown": 300,
+        "scaleInCooldown": 300
+      },
+      "loadBalancer": {
+        "type": "application",
+        "scheme": "internet-facing",
+        "healthCheck": {
+          "path": "/health",
+          "interval": 30,
+          "timeout": 5,
+          "healthyThreshold": 2,
+          "unhealthyThreshold": 5
+        }
+      },
+      "blueGreen": {
+        "enabled": true,
+        "terminationWaitTime": 5,
+        "deploymentReadyOption": "CONTINUE_DEPLOYMENT"
+      },
+      "rollback": {
+        "enabled": true,
+        "autoRollback": true,
+        "conditions": ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+      }
+    },
+
+    "compliance": {
+      "dataRetention": {
+        "conversationLogs": "90d",
+        "userSessions": "30d",
+        "analytics": "2y",
+        "auditLogs": "7y"
+      },
+      "privacy": {
+        "dataMinimization": true,
+        "rightToErasure": true,
+        "consentManagement": true,
+        "anonymization": true
+      },
+      "audit": {
+        "enabled": true,
+        "events": ["auth", "data_access", "config_changes"],
+        "retention": "7y",
+        "immutable": true
+      }
+    }
+  },
+
+  "test": {
+    "environment": {
+      "name": "test",
+      "displayName": "Test",
+      "description": "Automated testing environment",
+      "debug": false,
+      "logLevel": "silent"
+    },
+
+    "server": {
+      "protocol": "http",
+      "host": "localhost",
+      "port": 3001,
+      "baseUrl": "http://localhost:3001",
+      "apiBasePath": "/api/v1",
+      "timeout": 5000,
+      "keepAlive": false,
+      "compression": false
+    },
+
+    "database": {
+      "type": "memory",
+      "name": "govwin_iq_chatbot_test",
+      "reset": true,
+      "fixtures": true
+    },
+
+    "cache": {
+      "type": "memory",
+      "ttl": 60,
+      "maxMemory": "10mb"
+    },
+
+    "external_apis": {
+      "govwin": {
+        "mock": true,
+        "fixtures": "./testing/fixtures/govwin-api.json"
+      },
+      "openai": {
+        "mock": true,
+        "fixtures": "./testing/fixtures/openai-api.json"
+      }
+    },
+
+    "security": {
+      "cors": {
+        "origin": "*",
+        "credentials": false
+      },
+      "rateLimit": {
+        "enabled": false
+      },
+      "jwt": {
+        "expiresIn": "1h",
+        "algorithm": "HS256"
+      }
+    },
+
+    "features": {
+      "chatbot": {
+        "enabled": true,
+        "multiSession": false,
+        "contextRetention": false,
+        "analytics": false
+      },
+      "govwinIntegration": {
+        "enabled": true,
+        "realTimeSync": false,
+        "caching": false
+      },
+      "userManagement": {
+        "enabled": true,
+        "registration": true,
+        "profileManagement": false
+      }
+    },
+
+    "monitoring": {
+      "healthChecks": {
+        "enabled": false
+      },
+      "metrics": {
+        "enabled": false
+      },
+      "logging": {
+        "level": "silent",
+        "console": false,
+        "file": false
+      },
+      "tracing": {
+        "enabled": false
+      }
+    },
+
+    "deployment": {
+      "platform": "local",
+      "autoRestart": false,
+      "processManager": "direct"
+    }
+  },
+
+  "shared": {
+    "constants": {
+      "apiVersion": "v1",
+      "supportedPlatforms": ["slack", "teams", "web"],
+      "supportedLanguages": ["en-US"],
+      "maxSessionDuration": 7200000,
+      "maxMessageLength": 2000,
+      "maxContextHistory": 20
+    },
+
+    "validation": {
+      "schemas": {
+        "message": {
+          "type": "object",
+          "properties": {
+            "content": { "type": "string", "maxLength": 2000 },
+            "sessionId": { "type": "string", "format": "uuid" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          },
+          "required": ["content", "sessionId"]
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "format": "uuid" },
+            "email": { "type": "string", "format": "email" },
+            "role": { "type": "string", "enum": ["user", "admin"] }
+          },
+          "required": ["id", "email", "role"]
+        }
+      }
+    },
+
+    "errorCodes": {
+      "1000": "Invalid request format",
+      "1001": "Missing required parameters",
+      "1002": "Invalid parameter value",
+      "2000": "Authentication failed",
+      "2001": "Token expired",
+      "2002": "Insufficient permissions",
+      "3000": "Resource not found",
+      "3001": "Resource already exists",
+      "4000": "External API error",
+      "4001": "GovWin API unavailable",
+      "4002": "OpenAI API error",
+      "5000": "Internal server error",
+      "5001": "Database connection failed",
+      "5002": "Cache connection failed"
+    }
+  }
+}

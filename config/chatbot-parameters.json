@@ -1,0 +1,438 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-09",
+  "description": "Chatbot conversation flow parameters, response timeouts, and escalation thresholds",
+
+  "conversationFlow": {
+    "session": {
+      "maxDurationMinutes": 120,
+      "inactivityTimeoutMinutes": 30,
+      "warningBeforeTimeoutMinutes": 5,
+      "maxConcurrentSessions": 5,
+      "sessionExtensionMinutes": 15,
+      "gracefulTimeoutEnabled": true
+    },
+
+    "turns": {
+      "maxTurnsPerSession": 50,
+      "maxConsecutiveQuestions": 10,
+      "turnTimeoutSeconds": 300,
+      "contextCarryoverTurns": 10,
+      "conversationSummaryInterval": 20
+    },
+
+    "messageHandling": {
+      "maxMessageLength": 2000,
+      "minMessageLength": 1,
+      "typingIndicatorDelayMs": 1000,
+      "responseDelayMs": 500,
+      "maxRetries": 3,
+      "retryDelayMs": 2000,
+      "duplicateMessageWindowSeconds": 30
+    },
+
+    "contextManagement": {
+      "maxContextHistoryTurns": 20,
+      "contextDecayFactor": 0.9,
+      "entityRetentionMinutes": 60,
+      "intentCarryoverTurns": 5,
+      "topicSwitchThreshold": 0.3,
+      "contextCompressionEnabled": true,
+      "contextCompressionTrigger": 15
+    }
+  },
+
+  "responseGeneration": {
+    "timeouts": {
+      "standardResponseMs": 5000,
+      "complexQueryMs": 15000,
+      "apiCallMs": 30000,
+      "databaseQueryMs": 10000,
+      "fileProcessingMs": 20000,
+      "nlpProcessingMs": 8000
+    },
+
+    "retryPolicy": {
+      "maxRetries": 3,
+      "baseDelayMs": 1000,
+      "maxDelayMs": 10000,
+      "backoffMultiplier": 2,
+      "retryableErrors": [
+        "timeout",
+        "rate_limit",
+        "temporary_failure",
+        "network_error"
+      ]
+    },
+
+    "fallbackBehavior": {
+      "enabled": true,
+      "maxFallbackAttempts": 2,
+      "fallbackDelayMs": 1500,
+      "fallbackToGenericResponse": true,
+      "escalateAfterFallbacks": true
+    },
+
+    "responseQuality": {
+      "minConfidenceThreshold": 0.6,
+      "highConfidenceThreshold": 0.85,
+      "ambiguityThreshold": 0.4,
+      "clarificationThreshold": 0.5,
+      "maxResponseVariants": 3,
+      "personalityConsistency": true
+    }
+  },
+
+  "intentRecognition": {
+    "confidence": {
+      "minimumThreshold": 0.5,
+      "mediumThreshold": 0.7,
+      "highThreshold": 0.85,
+      "exactMatchBonus": 0.1,
+      "contextBonus": 0.05
+    },
+
+    "multiIntent": {
+      "enabled": true,
+      "maxIntents": 3,
+      "minimumSecondaryThreshold": 0.4,
+      "intentSeparationThreshold": 0.2,
+      "priorityIntents": [
+        "urgent_help",
+        "technical_issue",
+        "account_problem"
+      ]
+    },
+
+    "fallbackHandling": {
+      "fallbackIntentThreshold": 0.3,
+      "consecutiveFallbackLimit": 3,
+      "fallbackCooldownMinutes": 5,
+      "escalateOnRepeatedFallback": true,
+      "suggestAlternatives": true
+    },
+
+    "contextualIntents": {
+      "enabled": true,
+      "contextInfluenceWeight": 0.3,
+      "previousIntentWeight": 0.2,
+      "sessionHistoryWeight": 0.1,
+      "userPreferenceWeight": 0.1
+    }
+  },
+
+  "escalationThresholds": {
+    "automatic": {
+      "enabled": true,
+      "consecutiveFailures": 3,
+      "lowConfidenceResponses": 5,
+      "sessionDurationMinutes": 45,
+      "userFrustrationIndicators": 2,
+      "technicalErrors": 2,
+      "accountIssues": 1
+    },
+
+    "userTriggered": {
+      "keywords": [
+        "speak to human",
+        "talk to person",
+        "human agent",
+        "real person",
+        "customer service",
+        "support representative",
+        "escalate",
+        "supervisor"
+      ],
+      "phrases": [
+        "this isn't working",
+        "you don't understand",
+        "this is frustrating",
+        "i need help",
+        "can't find what i need"
+      ],
+      "sentimentThreshold": -0.6,
+      "urgencyKeywords": [
+        "urgent",
+        "emergency",
+        "critical",
+        "asap",
+        "immediately"
+      ]
+    },
+
+    "businessRules": {
+      "billingIssues": {
+        "autoEscalate": true,
+        "maxAttempts": 1
+      },
+      "accountSecurity": {
+        "autoEscalate": true,
+        "maxAttempts": 0
+      },
+      "technicalProblems": {
+        "autoEscalate": false,
+        "maxAttempts": 5
+      },
+      "generalQuestions": {
+        "autoEscalate": false,
+        "maxAttempts": 10
+      },
+      "featureRequests": {
+        "autoEscalate": false,
+        "maxAttempts": 3,
+        "routeTo": "product_team"
+      }
+    },
+
+    "cooldownPeriods": {
+      "afterEscalation": 3600,
+      "betweenAttempts": 300,
+      "userInitiated": 0,
+      "systemInitiated": 600
+    }
+  },
+
+  "userExperience": {
+    "personalization": {
+      "enabled": true,
+      "adaptToUserStyle": true,
+      "rememberPreferences": true,
+      "personalityAdjustment": {
+        "formalityLevel": "adaptive",
+        "responseLength": "adaptive",
+        "technicalDetail": "adaptive",
+        "helpfulness": "high"
+      }
+    },
+
+    "proactiveAssistance": {
+      "enabled": true,
+      "suggestionsEnabled": true,
+      "maxSuggestions": 3,
+      "contextualSuggestions": true,
+      "popularQueriesSuggestions": true,
+      "proactiveTimeout": 30000
+    },
+
+    "accessibility": {
+      "screenReaderSupport": true,
+      "keyboardNavigation": true,
+      "highContrast": false,
+      "fontSize": "normal",
+      "readingSpeed": "normal",
+      "alternativeFormats": ["text", "audio"]
+    },
+
+    "multimodal": {
+      "textInput": true,
+      "voiceInput": false,
+      "fileUpload": false,
+      "imageRecognition": false,
+      "videoSupport": false
+    }
+  },
+
+  "performanceOptimization": {
+    "responseTime": {
+      "targetMs": 2000,
+      "warningThresholdMs": 3000,
+      "errorThresholdMs": 5000,
+      "optimizationEnabled": true,
+      "cacheCommonResponses": true
+    },
+
+    "resourceManagement": {
+      "maxConcurrentRequests": 100,
+      "requestQueueSize": 500,
+      "memoryThresholdMB": 512,
+      "cpuThresholdPercent": 80,
+      "gracefulDegradation": true
+    },
+
+    "caching": {
+      "responseCache": {
+        "enabled": true,
+        "ttlSeconds": 3600,
+        "maxSize": 1000,
+        "invalidateOnUpdate": true
+      },
+      "intentCache": {
+        "enabled": true,
+        "ttlSeconds": 7200,
+        "maxSize": 500
+      },
+      "contextCache": {
+        "enabled": true,
+        "ttlSeconds": 1800,
+        "maxSize": 200
+      }
+    },
+
+    "loadBalancing": {
+      "enabled": true,
+      "algorithm": "round_robin",
+      "healthCheckInterval": 30000,
+      "failoverEnabled": true,
+      "circuitBreaker": {
+        "enabled": true,
+        "failureThreshold": 10,
+        "resetTimeoutMs": 60000
+      }
+    }
+  },
+
+  "analytics": {
+    "conversationMetrics": {
+      "trackTurnCount": true,
+      "trackResponseTime": true,
+      "trackUserSatisfaction": true,
+      "trackIntentAccuracy": true,
+      "trackEscalationRate": true,
+      "trackSessionDuration": true
+    },
+
+    "userBehavior": {
+      "trackNavigationPatterns": true,
+      "trackQueryTypes": true,
+      "trackFeatureUsage": true,
+      "trackUserJourney": true,
+      "anonymizeData": true
+    },
+
+    "businessMetrics": {
+      "trackConversionRate": false,
+      "trackCostPerConversation": true,
+      "trackResolutionRate": true,
+      "trackCustomerEffort": true,
+      "trackNps": true
+    },
+
+    "realTimeMonitoring": {
+      "enabled": true,
+      "alertThresholds": {
+        "responseTime": 5000,
+        "errorRate": 0.05,
+        "escalationRate": 0.1,
+        "userSatisfaction": 3.0
+      },
+      "dashboardRefreshSeconds": 30
+    }
+  },
+
+  "integrationParameters": {
+    "govwinApi": {
+      "connectionTimeout": 30000,
+      "readTimeout": 45000,
+      "maxRetries": 3,
+      "retryDelayMs": 2000,
+      "cacheTtlSeconds": 1800,
+      "rateLimitBuffer": 0.8,
+      "batchSize": 50,
+      "parallelRequests": 5
+    },
+
+    "nlpService": {
+      "provider": "openai",
+      "modelVersion": "gpt-4",
+      "maxTokens": 2000,
+      "temperature": 0.7,
+      "topP": 1.0,
+      "frequencyPenalty": 0.0,
+      "presencePenalty": 0.0,
+      "timeout": 30000,
+      "fallbackModel": "gpt-3.5-turbo"
+    },
+
+    "knowledgeBase": {
+      "searchTimeout": 10000,
+      "maxResults": 10,
+      "relevanceThreshold": 0.6,
+      "fuzzyMatchEnabled": true,
+      "synonymExpansion": true,
+      "cacheTtlSeconds": 3600
+    },
+
+    "ticketingSystem": {
+      "enabled": true,
+      "provider": "zendesk",
+      "autoCreateTickets": false,
+      "defaultPriority": "normal",
+      "escalationPriority": "high",
+      "timeout": 15000,
+      "includeConversationHistory": true
+    }
+  },
+
+  "safetyAndCompliance": {
+    "contentFiltering": {
+      "enabled": true,
+      "profanityFilter": true,
+      "toxicityThreshold": 0.7,
+      "personalInfoDetection": true,
+      "spamDetection": true,
+      "rateLimitViolations": true
+    },
+
+    "privacyProtection": {
+      "anonymizeUserData": true,
+      "encryptSensitiveData": true,
+      "dataRetentionDays": 90,
+      "rightToErasure": true,
+      "consentTracking": true,
+      "gdprCompliance": true
+    },
+
+    "auditLogging": {
+      "enabled": true,
+      "logLevel": "info",
+      "logConversations": true,
+      "logEscalations": true,
+      "logErrors": true,
+      "logUserActions": true,
+      "retentionDays": 365
+    },
+
+    "errorHandling": {
+      "gracefulFailure": true,
+      "fallbackResponses": true,
+      "userNotification": true,
+      "errorReporting": true,
+      "maxErrorsPerSession": 5,
+      "errorCooldownSeconds": 60
+    }
+  },
+
+  "testingAndValidation": {
+    "unitTesting": {
+      "intentRecognitionTests": true,
+      "responseGenerationTests": true,
+      "escalationLogicTests": true,
+      "timeoutHandlingTests": true,
+      "coverageThreshold": 0.8
+    },
+
+    "integrationTesting": {
+      "endToEndFlows": true,
+      "apiIntegrationTests": true,
+      "performanceTests": true,
+      "loadTests": true,
+      "failoverTests": true
+    },
+
+    "userAcceptanceTesting": {
+      "conversationFlowTests": true,
+      "usabilityTests": true,
+      "accessibilityTests": true,
+      "satisfactionSurveys": true,
+      "betaUserFeedback": true
+    },
+
+    "continuousMonitoring": {
+      "conversationQualityScore": true,
+      "intentAccuracyTracking": true,
+      "responseTimeMonitoring": true,
+      "errorRateTracking": true,
+      "userSatisfactionTracking": true
+    }
+  }
+}
