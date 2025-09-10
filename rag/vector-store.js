@@ -7,12 +7,15 @@ class VectorStore {
     this.persistencePath = options.persistencePath || path.join(__dirname, 'faq-vectors.json');
     this.autoSave = options.autoSave !== false;
     this.maxVectors = options.maxVectors || 1000;
+    this.saveDelay = options.saveDelay || 2000;
     
     this.vectors = new Map();
     this.metadata = new Map();
-    this.searchIndex = new Map();
+    this.categoryIndex = new Map();
+    this.keywordIndex = new Map();
     this.isDirty = false;
     this.lastSave = 0;
+    this.saveTimeout = null;
     
     if (options.loadOnInit !== false) {
       this.load();
@@ -21,26 +24,24 @@ class VectorStore {
 
   add(id, vector, metadata = {}) {
     this.validateVector(vector);
-    
-    if (!id || typeof id !== 'string') {
-      throw new Error('Vector ID must be a non-empty string');
-    }
+    this.validateId(id);
     
     if (this.vectors.size >= this.maxVectors && !this.vectors.has(id)) {
       throw new Error(`Maximum vector limit (${this.maxVectors}) reached`);
     }
     
-    const normalizedVector = this.normalizeVector(vector);
-    
-    this.vectors.set(id, normalizedVector);
-    this.metadata.set(id, {
+    const normalizedVector = this.normalizeVector([...vector]);
+    const enrichedMetadata = {
       id,
       ...metadata,
       timestamp: Date.now(),
       dimension: this.dimension
-    });
+    };
     
-    this.updateSearchIndex(id, normalizedVector, metadata);
+    this.vectors.set(id, normalizedVector);
+    this.metadata.set(id, enrichedMetadata);
+    
+    this.updateIndexes(id, enrichedMetadata);
     this.markDirty();
     
     return id;
@@ -50,23 +51,25 @@ class VectorStore {
     const results = [];
     const errors = [];
     
-    for (const item of items) {
+    items.forEach((item, index) => {
       try {
-        const id = this.add(item.id, item.vector, item.metadata);
-        results.push({ id, success: true });
+        const id = this.add(item.id || `batch_${index}`, item.vector, item.metadata);
+        results.push({ id, success: true, index });
       } catch (error) {
         errors.push({ 
-          id: item.id || 'unknown', 
+          id: item.id || `batch_${index}`, 
           error: error.message, 
-          success: false 
+          success: false,
+          index 
         });
       }
-    }
+    });
     
     return { 
       successful: results.length, 
       failed: errors.length, 
       total: items.length,
+      results,
       errors 
     };
   }
@@ -79,19 +82,30 @@ class VectorStore {
       return null;
     }
     
-    return { id, vector: [...vector], metadata: { ...metadata } };
+    return { 
+      id, 
+      vector: [...vector], 
+      metadata: { ...metadata } 
+    };
+  }
+
+  getAll() {
+    const results = [];
+    for (const [id] of this.vectors) {
+      results.push(this.get(id));
+    }
+    return results;
   }
 
   update(id, vector = null, metadata = null) {
-    if (!this.vectors.has(id)) {
+    if (!this.exists(id)) {
       throw new Error(`Vector with id '${id}' not found`);
     }
     
     if (vector !== null) {
       this.validateVector(vector);
-      const normalizedVector = this.normalizeVector(vector);
+      const normalizedVector = this.normalizeVector([...vector]);
       this.vectors.set(id, normalizedVector);
-      this.updateSearchIndex(id, normalizedVector, this.metadata.get(id));
     }
     
     if (metadata !== null) {
@@ -103,7 +117,7 @@ class VectorStore {
         updatedAt: Date.now()
       };
       this.metadata.set(id, updatedMetadata);
-      this.updateSearchIndex(id, this.vectors.get(id), updatedMetadata);
+      this.updateIndexes(id, updatedMetadata);
     }
     
     this.markDirty();
@@ -117,12 +131,16 @@ class VectorStore {
     if (hasVector || hasMetadata) {
       this.vectors.delete(id);
       this.metadata.delete(id);
-      this.removeFromSearchIndex(id);
+      this.removeFromIndexes(id);
       this.markDirty();
       return true;
     }
     
     return false;
+  }
+
+  exists(id) {
+    return this.vectors.has(id) && this.metadata.has(id);
   }
 
   validateVector(vector) {
@@ -141,9 +159,19 @@ class VectorStore {
     return true;
   }
 
+  validateId(id) {
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      throw new Error('Vector ID must be a non-empty string');
+    }
+    return true;
+  }
+
   normalizeVector(vector) {
     const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-    return magnitude > 0 ? vector.map(val => val / magnitude) : new Array(vector.length).fill(0);
+    if (magnitude === 0 || !isFinite(magnitude)) {
+      return new Array(vector.length).fill(0);
+    }
+    return vector.map(val => val / magnitude);
   }
 
   cosineSimilarity(vecA, vecB) {
@@ -169,6 +197,17 @@ class VectorStore {
     return Math.sqrt(sum);
   }
 
+  manhattanDistance(vecA, vecB) {
+    if (vecA.length !== vecB.length) return Infinity;
+    
+    let sum = 0;
+    for (let i = 0; i < vecA.length; i++) {
+      sum += Math.abs(vecA[i] - vecB[i]);
+    }
+    
+    return sum;
+  }
+
   search(queryVector, options = {}) {
     this.validateVector(queryVector);
     
@@ -178,30 +217,21 @@ class VectorStore {
       metric = 'cosine',
       includeMetadata = true,
       includeVectors = false,
-      filter = null
+      filter = null,
+      category = null
     } = options;
     
-    const normalizedQuery = this.normalizeVector(queryVector);
+    const normalizedQuery = this.normalizeVector([...queryVector]);
+    const candidateIds = this.getCandidateIds(filter, category);
     const results = [];
-    
-    for (const [id, vector] of this.vectors.entries()) {
+
+    for (const id of candidateIds) {
+      const vector = this.vectors.get(id);
       const metadata = this.metadata.get(id);
       
-      if (filter && !this.applyFilter(filter, metadata)) {
-        continue;
-      }
-      
-      let score;
-      switch (metric) {
-        case 'cosine':
-          score = this.cosineSimilarity(normalizedQuery, vector);
-          break;
-        case 'euclidean':
-          score = 1 / (1 + this.euclideanDistance(normalizedQuery, vector));
-          break;
-        default:
-          throw new Error(`Unknown similarity metric: ${metric}`);
-      }
+      if (!vector || !metadata) continue;
+
+      let score = this.calculateSimilarity(normalizedQuery, vector, metric);
       
       if (score >= threshold) {
         const result = { id, score };
@@ -218,18 +248,98 @@ class VectorStore {
       }
     }
     
-    results.sort((a, b) => b.score - a.score);
-    return results.slice(0, k);
+    return results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, k);
+  }
+
+  calculateSimilarity(vecA, vecB, metric) {
+    switch (metric) {
+      case 'cosine':
+        return this.cosineSimilarity(vecA, vecB);
+      case 'euclidean':
+        return 1 / (1 + this.euclideanDistance(vecA, vecB));
+      case 'manhattan':
+        return 1 / (1 + this.manhattanDistance(vecA, vecB));
+      default:
+        throw new Error(`Unknown similarity metric: ${metric}`);
+    }
+  }
+
+  getCandidateIds(filter, category) {
+    if (category) {
+      const categoryIds = this.categoryIndex.get(category);
+      if (!categoryIds) return new Set();
+      
+      if (filter) {
+        return new Set(Array.from(categoryIds).filter(id => 
+          this.applyFilter(filter, this.metadata.get(id))
+        ));
+      }
+      
+      return categoryIds;
+    }
+    
+    if (filter) {
+      return new Set(Array.from(this.vectors.keys()).filter(id => 
+        this.applyFilter(filter, this.metadata.get(id))
+      ));
+    }
+    
+    return new Set(this.vectors.keys());
+  }
+
+  applyFilter(filter, metadata) {
+    if (!filter || !metadata) return true;
+    
+    for (const [key, value] of Object.entries(filter)) {
+      if (Array.isArray(value)) {
+        if (!value.includes(metadata[key])) {
+          return false;
+        }
+      } else if (typeof value === 'function') {
+        if (!value(metadata[key], metadata)) {
+          return false;
+        }
+      } else if (metadata[key] !== value) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
   searchByCategory(queryVector, category, options = {}) {
+    return this.search(queryVector, { ...options, category });
+  }
+
+  searchByKeywords(queryVector, keywords, options = {}) {
+    const keywordIds = new Set();
+    
+    keywords.forEach(keyword => {
+      const ids = this.keywordIndex.get(keyword);
+      if (ids) {
+        ids.forEach(id => keywordIds.add(id));
+      }
+    });
+
+    if (keywordIds.size === 0) {
+      return this.search(queryVector, options);
+    }
+
+    const filter = options.filter || {};
+    const keywordFilter = (metadata) => keywordIds.has(metadata.id);
+    
     return this.search(queryVector, {
       ...options,
-      filter: { category }
+      filter: {
+        ...filter,
+        keywordMatch: keywordFilter
+      }
     });
   }
 
-  findSimilarVectors(id, options = {}) {
+  findSimilar(id, options = {}) {
     const item = this.get(id);
     if (!item) {
       throw new Error(`Vector with id '${id}' not found`);
@@ -241,67 +351,72 @@ class VectorStore {
     return results.filter(result => result.id !== id).slice(0, k);
   }
 
-  applyFilter(filter, metadata) {
-    for (const [key, value] of Object.entries(filter)) {
-      if (Array.isArray(value)) {
-        if (!value.includes(metadata[key])) {
-          return false;
+  updateIndexes(id, metadata) {
+    if (metadata.category) {
+      if (!this.categoryIndex.has(metadata.category)) {
+        this.categoryIndex.set(metadata.category, new Set());
+      }
+      this.categoryIndex.get(metadata.category).add(id);
+    }
+    
+    if (metadata.keywords && Array.isArray(metadata.keywords)) {
+      metadata.keywords.forEach(keyword => {
+        if (!this.keywordIndex.has(keyword)) {
+          this.keywordIndex.set(keyword, new Set());
         }
-      } else if (metadata[key] !== value) {
-        return false;
+        this.keywordIndex.get(keyword).add(id);
+      });
+    }
+  }
+
+  removeFromIndexes(id) {
+    for (const [category, ids] of this.categoryIndex.entries()) {
+      ids.delete(id);
+      if (ids.size === 0) {
+        this.categoryIndex.delete(category);
       }
     }
-    return true;
-  }
-
-  updateSearchIndex(id, vector, metadata) {
-    if (!metadata.category) return;
     
-    const categoryKey = `category:${metadata.category}`;
-    if (!this.searchIndex.has(categoryKey)) {
-      this.searchIndex.set(categoryKey, new Set());
-    }
-    
-    this.searchIndex.get(categoryKey).add(id);
-  }
-
-  removeFromSearchIndex(id) {
-    for (const [key, idSet] of this.searchIndex.entries()) {
-      idSet.delete(id);
-      if (idSet.size === 0) {
-        this.searchIndex.delete(key);
+    for (const [keyword, ids] of this.keywordIndex.entries()) {
+      ids.delete(id);
+      if (ids.size === 0) {
+        this.keywordIndex.delete(keyword);
       }
     }
   }
 
   getByCategory(category) {
-    const categoryKey = `category:${category}`;
-    const categoryIds = this.searchIndex.get(categoryKey);
+    const categoryIds = this.categoryIndex.get(category);
+    if (!categoryIds) return [];
     
-    if (!categoryIds) {
-      return [];
-    }
+    return Array.from(categoryIds)
+      .map(id => this.get(id))
+      .filter(Boolean);
+  }
+
+  getByKeyword(keyword) {
+    const keywordIds = this.keywordIndex.get(keyword);
+    if (!keywordIds) return [];
     
-    return Array.from(categoryIds).map(id => this.get(id)).filter(Boolean);
+    return Array.from(keywordIds)
+      .map(id => this.get(id))
+      .filter(Boolean);
   }
 
   getCategories() {
-    const categories = new Set();
-    
-    for (const metadata of this.metadata.values()) {
-      if (metadata.category) {
-        categories.add(metadata.category);
-      }
-    }
-    
-    return Array.from(categories).sort();
+    return Array.from(this.categoryIndex.keys()).sort();
+  }
+
+  getKeywords() {
+    return Array.from(this.keywordIndex.keys()).sort();
   }
 
   cluster(options = {}) {
     const { 
-      numClusters = 5, 
+      numClusters = Math.min(5, Math.floor(this.vectors.size / 3)),
       maxIterations = 50,
-      tolerance = 0.001
+      tolerance = 0.001,
+      metric = 'euclidean'
     } = options;
     
     if (this.vectors.size < numClusters) {
@@ -312,40 +427,57 @@ class VectorStore {
     const centroids = this.initializeCentroids(vectors, numClusters);
     const clusters = new Array(numClusters).fill(null).map(() => []);
     
-    for (let iteration = 0; iteration < maxIterations; iteration++) {
+    let converged = false;
+    let iteration = 0;
+    
+    while (!converged && iteration < maxIterations) {
       clusters.forEach(cluster => cluster.length = 0);
       
       for (const [id, vector] of vectors) {
         let bestCluster = 0;
-        let bestDistance = this.euclideanDistance(vector, centroids[0]);
+        let bestScore = this.calculateClusterScore(vector, centroids[0], metric);
         
         for (let i = 1; i < numClusters; i++) {
-          const distance = this.euclideanDistance(vector, centroids[i]);
-          if (distance < bestDistance) {
-            bestDistance = distance;
+          const score = this.calculateClusterScore(vector, centroids[i], metric);
+          if (score < bestScore) {
+            bestScore = score;
             bestCluster = i;
           }
         }
         
-        clusters[bestCluster].push({ id, vector, distance: bestDistance });
+        clusters[bestCluster].push({ 
+          id, 
+          vector, 
+          distance: bestScore,
+          metadata: this.metadata.get(id)
+        });
       }
       
       const newCentroids = this.updateCentroids(clusters);
       const convergence = this.calculateConvergence(centroids, newCentroids);
       
-      if (convergence < tolerance) {
-        break;
-      }
-      
+      converged = convergence < tolerance;
       centroids.splice(0, centroids.length, ...newCentroids);
+      iteration++;
     }
     
     return clusters.map((cluster, index) => ({
       id: index,
       centroid: centroids[index],
-      vectors: cluster.map(({ id, distance }) => ({ id, distance })),
-      size: cluster.length
+      vectors: cluster.map(({ id, distance, metadata }) => ({ 
+        id, 
+        distance, 
+        category: metadata?.category || 'unknown'
+      })),
+      size: cluster.length,
+      categories: this.getClusterCategories(cluster)
     }));
+  }
+
+  calculateClusterScore(vector, centroid, metric) {
+    return metric === 'euclidean' ? 
+      this.euclideanDistance(vector, centroid) :
+      1 - this.cosineSimilarity(vector, centroid);
   }
 
   initializeCentroids(vectors, numClusters) {
@@ -367,11 +499,11 @@ class VectorStore {
       
       const centroid = new Array(this.dimension).fill(0);
       
-      for (const { vector } of cluster) {
+      cluster.forEach(({ vector }) => {
         for (let i = 0; i < this.dimension; i++) {
           centroid[i] += vector[i];
         }
-      }
+      });
       
       return centroid.map(val => val / cluster.length);
     });
@@ -387,6 +519,20 @@ class VectorStore {
     return totalDistance / oldCentroids.length;
   }
 
+  getClusterCategories(cluster) {
+    const categories = new Map();
+    
+    cluster.forEach(({ metadata }) => {
+      if (metadata?.category) {
+        categories.set(metadata.category, (categories.get(metadata.category) || 0) + 1);
+      }
+    });
+    
+    return Array.from(categories.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([category, count]) => ({ category, count }));
+  }
+
   getStats() {
     const memoryUsage = this.calculateMemoryUsage();
     
@@ -394,37 +540,54 @@ class VectorStore {
       count: this.vectors.size,
       dimension: this.dimension,
       maxVectors: this.maxVectors,
-      categories: this.getCategories().length,
+      categories: this.categoryIndex.size,
+      keywords: this.keywordIndex.size,
       isDirty: this.isDirty,
       lastSave: this.lastSave,
       memoryUsage,
-      searchIndexSize: this.searchIndex.size
+      averageVectorMagnitude: this.calculateAverageVectorMagnitude()
     };
   }
 
   calculateMemoryUsage() {
     const vectorMemory = this.vectors.size * this.dimension * 8;
-    const metadataSize = Array.from(this.metadata.values())
-      .reduce((size, meta) => size + JSON.stringify(meta).length, 0) * 2;
-    const indexMemory = this.searchIndex.size * 100;
+    const metadataMemory = Array.from(this.metadata.values())
+      .reduce((total, meta) => total + JSON.stringify(meta).length * 2, 0);
+    const indexMemory = (this.categoryIndex.size + this.keywordIndex.size) * 100;
     
     return {
       vectors: vectorMemory,
-      metadata: metadataSize,
-      searchIndex: indexMemory,
-      total: vectorMemory + metadataSize + indexMemory
+      metadata: metadataMemory,
+      indexes: indexMemory,
+      total: vectorMemory + metadataMemory + indexMemory
     };
+  }
+
+  calculateAverageVectorMagnitude() {
+    if (this.vectors.size === 0) return 0;
+    
+    let totalMagnitude = 0;
+    
+    for (const vector of this.vectors.values()) {
+      const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+      totalMagnitude += magnitude;
+    }
+    
+    return totalMagnitude / this.vectors.size;
   }
 
   export(includeVectors = true) {
     const data = {
-      version: '1.1',
+      version: '2.0',
       timestamp: Date.now(),
       dimension: this.dimension,
       count: this.vectors.size,
       metadata: Object.fromEntries(this.metadata),
-      searchIndex: Object.fromEntries(
-        Array.from(this.searchIndex.entries()).map(([k, v]) => [k, Array.from(v)])
+      categoryIndex: Object.fromEntries(
+        Array.from(this.categoryIndex.entries()).map(([k, v]) => [k, Array.from(v)])
+      ),
+      keywordIndex: Object.fromEntries(
+        Array.from(this.keywordIndex.entries()).map(([k, v]) => [k, Array.from(v)])
       )
     };
     
@@ -446,23 +609,26 @@ class VectorStore {
     
     this.clear();
     
-    if (data.vectors) {
+    if (data.vectors && data.metadata) {
       for (const [id, vector] of Object.entries(data.vectors)) {
         const metadata = data.metadata[id];
         if (vector && metadata) {
           this.add(id, vector, metadata);
         }
       }
-    } else {
-      for (const [id, metadata] of Object.entries(data.metadata)) {
-        this.metadata.set(id, metadata);
+    }
+    
+    if (data.categoryIndex) {
+      this.categoryIndex.clear();
+      for (const [category, ids] of Object.entries(data.categoryIndex)) {
+        this.categoryIndex.set(category, new Set(ids));
       }
     }
     
-    if (data.searchIndex) {
-      this.searchIndex.clear();
-      for (const [key, ids] of Object.entries(data.searchIndex)) {
-        this.searchIndex.set(key, new Set(ids));
+    if (data.keywordIndex) {
+      this.keywordIndex.clear();
+      for (const [keyword, ids] of Object.entries(data.keywordIndex)) {
+        this.keywordIndex.set(keyword, new Set(ids));
       }
     }
     
@@ -471,7 +637,7 @@ class VectorStore {
   }
 
   save() {
-    if (!this.isDirty && fs.existsSync(this.persistencePath)) {
+    if (!this.isDirty) {
       return { saved: false, reason: 'No changes to save' };
     }
     
@@ -486,6 +652,7 @@ class VectorStore {
       }
       
       fs.renameSync(tempPath, this.persistencePath);
+      
       this.isDirty = false;
       this.lastSave = Date.now();
       
@@ -493,9 +660,11 @@ class VectorStore {
         saved: true, 
         path: this.persistencePath,
         size: fs.statSync(this.persistencePath).size,
-        count: this.vectors.size
+        count: this.vectors.size,
+        timestamp: this.lastSave
       };
     } catch (error) {
+      console.error('Save failed:', error);
       throw new Error(`Failed to save vector store: ${error.message}`);
     }
   }
@@ -513,10 +682,11 @@ class VectorStore {
       return { 
         loaded: true, 
         ...result,
-        path: this.persistencePath
+        path: this.persistencePath,
+        version: data.version || '1.0'
       };
     } catch (error) {
-      console.error(`Failed to load vector store: ${error.message}`);
+      console.error('Load failed:', error);
       return { loaded: false, reason: error.message };
     }
   }
@@ -524,36 +694,42 @@ class VectorStore {
   clear() {
     this.vectors.clear();
     this.metadata.clear();
-    this.searchIndex.clear();
+    this.categoryIndex.clear();
+    this.keywordIndex.clear();
     this.markDirty();
   }
 
   markDirty() {
     this.isDirty = true;
-    if (this.autoSave && Date.now() - this.lastSave > 5000) {
-      setTimeout(() => {
+    
+    if (this.autoSave) {
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+      }
+      
+      this.saveTimeout = setTimeout(() => {
         if (this.isDirty) {
-          this.save();
+          try {
+            this.save();
+          } catch (error) {
+            console.error('Auto-save failed:', error);
+          }
         }
-      }, 1000);
+      }, this.saveDelay);
     }
   }
 
   optimize() {
-    const beforeCount = this.vectors.size;
+    const beforeStats = this.getStats();
     
     const validIds = new Set();
-    for (const [id, vector] of this.vectors.entries()) {
-      if (this.metadata.has(id) && vector && vector.length === this.dimension) {
-        validIds.add(id);
-      }
-    }
-    
     const orphanedVectors = [];
     const orphanedMetadata = [];
     
-    for (const id of this.vectors.keys()) {
-      if (!validIds.has(id)) {
+    for (const [id, vector] of this.vectors.entries()) {
+      if (this.metadata.has(id) && vector && vector.length === this.dimension) {
+        validIds.add(id);
+      } else {
         orphanedVectors.push(id);
       }
     }
@@ -567,22 +743,23 @@ class VectorStore {
     orphanedVectors.forEach(id => this.vectors.delete(id));
     orphanedMetadata.forEach(id => this.metadata.delete(id));
     
-    this.searchIndex.clear();
+    this.categoryIndex.clear();
+    this.keywordIndex.clear();
+    
     for (const [id, metadata] of this.metadata.entries()) {
-      const vector = this.vectors.get(id);
-      if (vector) {
-        this.updateSearchIndex(id, vector, metadata);
-      }
+      this.updateIndexes(id, metadata);
     }
     
     if (orphanedVectors.length > 0 || orphanedMetadata.length > 0) {
       this.markDirty();
     }
     
+    const afterStats = this.getStats();
+    
     return {
-      before: beforeCount,
-      after: this.vectors.size,
-      removed: beforeCount - this.vectors.size,
+      before: beforeStats,
+      after: afterStats,
+      removed: beforeStats.count - afterStats.count,
       orphanedVectors: orphanedVectors.length,
       orphanedMetadata: orphanedMetadata.length
     };
