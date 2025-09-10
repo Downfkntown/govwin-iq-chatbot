@@ -1,11 +1,47 @@
 {
   "name": "govwin-iq-chatbot",
   "version": "1.0.0",
-  "description": "GovWin IQ Customer Success Chatbot",
-  "main": "server/app.js",
+  "description": "GovWin IQ Customer Success Chatbot - Multi-agent RAG system for government contracting intelligence",
+  "main": "server/simple-server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
-    "start": "node server/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server/simple-server.js",
+    "dev": "NODE_ENV=development node server/simple-server.js",
+    "staging": "NODE_ENV=staging node -r dotenv/config server/simple-server.js dotenv_config_path=.env.staging",
+    "production": "NODE_ENV=production node server/simple-server.js",
+    "build": "npm run build:agents && npm run build:knowledge",
+    "build:staging": "npm run validate:config && npm run build:agents && npm run build:knowledge",
+    "build:production": "npm run validate:config && npm run test:agents && npm run build:agents && npm run build:knowledge",
+    "build:agents": "node scripts/validate-agents.js",
+    "build:knowledge": "node scripts/build-knowledge-base.js",
+    "validate:config": "node scripts/validate-config.js",
+    "test": "npm run test:units && npm run test:integration && npm run test:agents",
+    "test:units": "echo 'Unit tests: TODO - implement with Jest'",
+    "test:integration": "node test/integration-tests.js",
+    "test:agents": "node test/test-agent-system.js",
+    "test:health": "curl -f http://localhost:${PORT:-3001}/api/v1/system/health || exit 1",
+    "lint": "echo 'Linting: TODO - implement with ESLint'",
+    "audit": "npm audit --audit-level moderate",
+    "security": "npm audit && npm run validate:deps",
+    "validate:deps": "node scripts/validate-dependencies.js",
+    "deploy:staging": "bash deployment/staging-deploy.sh",
+    "deploy:railway": "railway deploy --environment staging",
+    "logs:staging": "railway logs --environment staging",
+    "logs:production": "railway logs --environment production",
+    "db:backup": "node scripts/backup-database.js",
+    "db:restore": "node scripts/restore-database.js",
+    "agents:status": "curl -s http://localhost:${PORT:-3001}/api/v1/agents/registry | jq '.agents[] | {id: .id, name: .name, status: .status}'",
+    "system:stats": "curl -s http://localhost:${PORT:-3001}/api/v1/system/stats | jq '.'",
+    "health:check": "node scripts/health-check.js",
+    "performance:test": "node scripts/performance-test.js",
+    "cache:clear": "node scripts/clear-cache.js",
+    "knowledge:update": "node scripts/update-knowledge-base.js",
+    "agents:reload": "curl -X POST http://localhost:${PORT:-3001}/api/v1/system/reload-agents",
+    "debug": "NODE_ENV=development DEBUG=govwin:* node server/simple-server.js",
+    "debug:agents": "NODE_ENV=development DEBUG=govwin:agents:* node server/simple-server.js"
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
@@ -19,6 +55,94 @@
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "node-cache": "^5.1.2",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "axios": "^1.6.2",
+    "lodash": "^4.17.21",
+    "validator": "^13.11.0",
+    "sanitize-html": "^2.11.0",
+    "moment": "^2.29.4",
+    "cron": "^3.1.6",
+    "fs-extra": "^11.2.0",
+    "path": "^0.12.7",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.1",
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/govwin-iq-chatbot.git"
+  },
+  "keywords": [
+    "govwin",
+    "government-contracting",
+    "chatbot",
+    "rag",
+    "multi-agent",
+    "ai",
+    "federal-opportunities",
+    "sled-markets",
+    "procurement",
+    "railway"
+  ],
+  "author": "Your Organization",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-org/govwin-iq-chatbot/issues"
+  },
+  "homepage": "https://github.com/your-org/govwin-iq-chatbot#readme",
+  "railway": {
+    "build": {
+      "command": "npm run build:production"
+    },
+    "start": {
+      "command": "npm run production"
+    },
+    "healthcheck": {
+      "path": "/api/v1/system/health",
+      "timeout": 30
+    },
+    "environment": {
+      "NODE_ENV": "production",
+      "PORT": "$PORT"
+    }
+  },
+  "config": {
+    "port": 3001,
+    "stagingPort": 3002,
+    "productionPort": 3000
+  },
+  "peerDependencies": {
+    "node": ">=18.0.0"
+  },
+  "optionalDependencies": {
+    "redis": "^4.6.11",
+    "pg": "^8.11.3",
+    "mongodb": "^6.3.0"
+  },
+  "browserslist": [
+    "node >= 18"
+  ],
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "funding": {
+    "type": "corporate",
+    "url": "https://your-org.com/funding"
   }
 }

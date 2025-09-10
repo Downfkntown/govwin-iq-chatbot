@@ -13,10 +13,88 @@ const { contextManager } = require('../agents/context-manager.js');
 const { responseCoordinator } = require('../agents/response-coordinator.js');
 
 const app = express();
-const port = 3001;
 
-app.use(cors());
-app.use(express.json());
+// Railway deployment compatibility: use PORT env var and bind to 0.0.0.0
+const port = process.env.PORT || process.env.STAGING_PORT || 3001;
+const host = process.env.HOST || '0.0.0.0';
+
+// Environment detection
+const env = process.env.NODE_ENV || 'development';
+const isProduction = env === 'production';
+const isStaging = env === 'staging';
+const isRailway = process.env.RAILWAY_ENVIRONMENT || false;
+
+// Trust proxy for Railway deployment
+if (isRailway || isProduction) {
+  app.set('trust proxy', true);
+}
+
+// CORS configuration for Railway deployment
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests from Railway domains and configured origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://localhost:3002',
+      'https://govwin.com',
+      'https://www.govwin.com',
+      'https://iq.govwin.com',
+      'https://staging.govwin.com',
+      'https://staging-iq.govwin.com'
+    ];
+    
+    // Add Railway URLs if available
+    if (process.env.RAILWAY_STATIC_URL) {
+      allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
+    }
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      allowedOrigins.push(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+    }
+    
+    // Add environment-specific CORS origins
+    if (process.env.CORS_ORIGIN_STAGING) {
+      allowedOrigins.push(...process.env.CORS_ORIGIN_STAGING.split(','));
+    }
+    
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: process.env.CORS_CREDENTIALS === 'true' || true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+
+// Add security middleware for production
+if (isProduction || isStaging) {
+  try {
+    const helmet = require('helmet');
+    app.use(helmet({
+      contentSecurityPolicy: false, // Disable for API server
+      crossOriginEmbedderPolicy: false
+    }));
+    console.log('✅ Helmet security middleware enabled');
+  } catch (error) {
+    console.log('⚠️  Helmet not available, skipping security headers');
+  }
+  
+  try {
+    const compression = require('compression');
+    app.use(compression());
+    console.log('✅ Compression middleware enabled');
+  } catch (error) {
+    console.log('⚠️  Compression not available, skipping compression');
+  }
+}
 
 const searchFlow = new SearchAssistanceFlow();
 const faqService = new FAQService();
@@ -1025,6 +1103,62 @@ app.get('/api/v1/system/stats', (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Simple server running on http://localhost:${port}`);
+// Graceful shutdown handling for Railway
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed successfully');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed successfully');
+    process.exit(0);
+  });
+});
+
+// Start server with Railway-compatible configuration
+const server = app.listen(port, host, () => {
+  console.log('🚀 GovWin IQ Chatbot Server Started');
+  console.log(`📍 Environment: ${env}`);
+  console.log(`🌐 Server running at: http://${host}:${port}`);
+  console.log(`🏥 Health check: http://${host}:${port}/api/v1/system/health`);
+  console.log(`📊 System stats: http://${host}:${port}/api/v1/system/stats`);
+  console.log(`🤖 Agent registry: http://${host}:${port}/api/v1/agents/registry`);
+  
+  if (isRailway) {
+    console.log('🚄 Railway deployment detected');
+    console.log(`🔗 Railway URL: ${process.env.RAILWAY_STATIC_URL || 'Not available'}`);
+    console.log(`🌍 Public domain: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'Not available'}`);
+  }
+  
+  console.log('✅ Server ready for connections');
+});
+
+// Set server timeouts for Railway
+server.keepAliveTimeout = parseInt(process.env.KEEP_ALIVE_TIMEOUT) || 65000;
+server.headersTimeout = parseInt(process.env.HEADERS_TIMEOUT) || 66000;
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${port} is already in use`);
+  } else {
+    console.error('❌ Server error:', error);
+  }
+  process.exit(1);
+});
+
+// Log unhandled rejections and exceptions
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  // Give Railway time to capture logs before exiting
+  setTimeout(() => process.exit(1), 1000);
 });

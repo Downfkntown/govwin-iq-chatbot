@@ -1,0 +1,531 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "version": "1.0.0",
+  "name": "govwin-iq-chatbot",
+  "description": "GovWin IQ Customer Success Chatbot - Multi-agent RAG system for government contracting intelligence",
+  "environments": {
+    "production": {
+      "name": "Production",
+      "description": "Production environment for GovWin IQ Chatbot",
+      "variables": {
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info",
+        "ENABLE_METRICS": "true",
+        "ENABLE_HEALTH_CHECKS": "true",
+        "MAX_CONCURRENT_AGENTS": "10",
+        "AGENT_TIMEOUT": "8000",
+        "CONTEXT_SESSION_TIMEOUT": "3600000",
+        "ENABLE_RESPONSE_CACHE": "true",
+        "RESPONSE_CACHE_TTL": "900000",
+        "API_RATE_LIMIT_MAX": "500",
+        "API_RATE_LIMIT_WINDOW": "900000",
+        "ENABLE_FEDERAL_AGENT": "true",
+        "ENABLE_SLED_AGENT": "true",
+        "ENABLE_REGIONAL_MARKETS_AGENT": "true",
+        "ENABLE_SEARCH_ORCHESTRATOR": "true",
+        "ENABLE_ALERT_MANAGER": "true",
+        "ENABLE_REPORT_GENERATOR": "true",
+        "BACKUP_ENABLED": "true",
+        "BACKUP_INTERVAL": "3600000",
+        "MAX_BACKUPS": "24",
+        "GRACEFUL_SHUTDOWN_TIMEOUT": "10000"
+      },
+      "build": {
+        "command": "npm run build:production",
+        "watchPatterns": [
+          "server/**/*.js",
+          "agents/**/*.js",
+          "rag/**/*.js",
+          "conversation-flows/**/*.js",
+          "knowledge-base/**/*.md",
+          "package.json"
+        ]
+      },
+      "deploy": {
+        "startCommand": "npm run production",
+        "healthcheckPath": "/api/v1/system/health",
+        "healthcheckTimeout": 30,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 3
+      },
+      "resources": {
+        "memory": 1024,
+        "cpu": 1000,
+        "disk": 1024
+      },
+      "scaling": {
+        "minReplicas": 1,
+        "maxReplicas": 3,
+        "targetCPUUtilization": 70,
+        "targetMemoryUtilization": 80
+      },
+      "networking": {
+        "allowPublic": true,
+        "ingressTimeout": 30000
+      },
+      "monitoring": {
+        "enabled": true,
+        "alerts": {
+          "cpu": {
+            "enabled": true,
+            "threshold": 80,
+            "duration": 300
+          },
+          "memory": {
+            "enabled": true,
+            "threshold": 85,
+            "duration": 300
+          },
+          "errorRate": {
+            "enabled": true,
+            "threshold": 5,
+            "duration": 180
+          }
+        }
+      }
+    },
+    "staging": {
+      "name": "Staging",
+      "description": "Staging environment for testing and validation",
+      "variables": {
+        "NODE_ENV": "staging",
+        "LOG_LEVEL": "debug",
+        "ENABLE_METRICS": "true",
+        "ENABLE_HEALTH_CHECKS": "true",
+        "MAX_CONCURRENT_AGENTS": "5",
+        "AGENT_TIMEOUT": "10000",
+        "CONTEXT_SESSION_TIMEOUT": "7200000",
+        "ENABLE_RESPONSE_CACHE": "true",
+        "RESPONSE_CACHE_TTL": "600000",
+        "API_RATE_LIMIT_MAX": "1000",
+        "API_RATE_LIMIT_WINDOW": "900000",
+        "ENABLE_FEDERAL_AGENT": "true",
+        "ENABLE_SLED_AGENT": "true",
+        "ENABLE_REGIONAL_MARKETS_AGENT": "true",
+        "ENABLE_SEARCH_ORCHESTRATOR": "true",
+        "ENABLE_ALERT_MANAGER": "true",
+        "ENABLE_REPORT_GENERATOR": "true",
+        "ENABLE_DEBUG_ROUTES": "true",
+        "ENABLE_MOCK_DATA": "true",
+        "VERBOSE_LOGGING": "true",
+        "BACKUP_ENABLED": "true",
+        "BACKUP_INTERVAL": "1800000",
+        "MAX_BACKUPS": "12",
+        "GRACEFUL_SHUTDOWN_TIMEOUT": "15000"
+      },
+      "build": {
+        "command": "npm run build:staging",
+        "watchPatterns": [
+          "server/**/*.js",
+          "agents/**/*.js",
+          "rag/**/*.js",
+          "conversation-flows/**/*.js",
+          "knowledge-base/**/*.md",
+          "deployment/**/*",
+          "package.json"
+        ]
+      },
+      "deploy": {
+        "startCommand": "npm run staging",
+        "healthcheckPath": "/api/v1/system/health",
+        "healthcheckTimeout": 45,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 5
+      },
+      "resources": {
+        "memory": 512,
+        "cpu": 500,
+        "disk": 512
+      },
+      "scaling": {
+        "minReplicas": 1,
+        "maxReplicas": 2,
+        "targetCPUUtilization": 80,
+        "targetMemoryUtilization": 85
+      },
+      "networking": {
+        "allowPublic": true,
+        "ingressTimeout": 45000
+      },
+      "monitoring": {
+        "enabled": true,
+        "alerts": {
+          "cpu": {
+            "enabled": true,
+            "threshold": 90,
+            "duration": 600
+          },
+          "memory": {
+            "enabled": true,
+            "threshold": 90,
+            "duration": 600
+          },
+          "errorRate": {
+            "enabled": true,
+            "threshold": 10,
+            "duration": 300
+          }
+        }
+      }
+    }
+  },
+  "services": [
+    {
+      "name": "govwin-iq-chatbot",
+      "source": {
+        "type": "github",
+        "repo": "your-org/govwin-iq-chatbot",
+        "branch": "main"
+      },
+      "build": {
+        "builder": "NIXPACKS",
+        "buildCommand": "$RAILWAY_BUILD_COMMAND",
+        "watchPatterns": [
+          "server/**/*.js",
+          "agents/**/*.js",
+          "rag/**/*.js",
+          "conversation-flows/**/*.js",
+          "knowledge-base/**/*.md",
+          "package.json",
+          "railway.json"
+        ]
+      },
+      "deploy": {
+        "startCommand": "$RAILWAY_START_COMMAND",
+        "healthcheck": {
+          "path": "/api/v1/system/health",
+          "timeout": 30,
+          "interval": 30,
+          "retries": 3,
+          "startPeriod": 60
+        },
+        "restartPolicy": {
+          "type": "ON_FAILURE",
+          "maxRetries": 3,
+          "delay": 5
+        }
+      },
+      "variables": {
+        "shared": {
+          "HOST": "0.0.0.0",
+          "NODE_VERSION": "18",
+          "NPM_VERSION": "latest",
+          "RAILWAY_HEALTHCHECK_TIMEOUT": "30",
+          "RAILWAY_DEPLOYMENT_TIMEOUT": "600",
+          "TRUST_PROXY": "true",
+          "ENABLE_HELMET": "true",
+          "ENABLE_COMPRESSION": "true",
+          "CORS_CREDENTIALS": "true",
+          "STRUCTURED_LOGGING": "true",
+          "LOG_TIMESTAMP_FORMAT": "iso",
+          "ENABLE_REQUEST_LOGGING": "true",
+          "ENABLE_PERFORMANCE_LOGGING": "true",
+          "RAILWAY_LOGS_ENABLED": "true",
+          "VECTOR_DIMENSION": "200",
+          "MAX_VECTORS": "10000",
+          "AUTO_SAVE": "true",
+          "SAVE_INTERVAL": "300000",
+          "SESSION_STORAGE": "memory",
+          "SESSION_TTL": "7200000",
+          "MAX_SESSIONS": "1000",
+          "SESSION_CLEANUP_INTERVAL": "600000",
+          "INTENT_CONFIDENCE_THRESHOLD": "0.25",
+          "ENABLE_MULTI_AGENT_ROUTING": "true",
+          "MAX_ROUTING_TIME": "2000",
+          "FALLBACK_AGENT": "conversationManager",
+          "MAX_RESPONSE_TIME": "10000",
+          "CONFLICT_RESOLUTION_STRATEGY": "priority_based",
+          "AGGREGATION_STRATEGY": "weighted_average",
+          "MAX_SOURCES_PER_RESPONSE": "5",
+          "MEMORY_CACHE_ENABLED": "true",
+          "MEMORY_CACHE_MAX_SIZE": "100",
+          "MEMORY_CACHE_TTL": "600000",
+          "HEALTH_CHECK_ENABLED": "true",
+          "HEALTH_CHECK_INTERVAL": "30000",
+          "HEALTH_CHECK_TIMEOUT": "5000",
+          "SYSTEM_METRICS_ENABLED": "true",
+          "APPLICATION_METRICS_ENABLED": "true",
+          "ANALYTICS_ENABLED": "true",
+          "ANALYTICS_PROVIDER": "internal",
+          "ANALYTICS_SAMPLE_RATE": "1.0",
+          "ENABLE_WEBHOOKS": "true",
+          "ENABLE_EMAIL_ALERTS": "false",
+          "ENABLE_RAG_SYSTEM": "true",
+          "ENABLE_VECTOR_SEARCH": "true",
+          "ENABLE_CONTEXT_MANAGEMENT": "true",
+          "ENABLE_RESPONSE_COORDINATION": "true",
+          "AUTO_CLEANUP_ENABLED": "true",
+          "CLEANUP_INTERVAL": "3600000",
+          "OPTIMIZE_MEMORY": "true",
+          "GC_INTERVAL": "300000"
+        }
+      },
+      "volumes": [
+        {
+          "name": "data",
+          "mountPath": "/app/data",
+          "size": "1GB"
+        },
+        {
+          "name": "logs",
+          "mountPath": "/app/logs",
+          "size": "500MB"
+        },
+        {
+          "name": "backups",
+          "mountPath": "/app/backups",
+          "size": "2GB"
+        },
+        {
+          "name": "cache",
+          "mountPath": "/app/cache",
+          "size": "500MB"
+        }
+      ],
+      "networking": {
+        "serviceDomain": {
+          "enabled": true,
+          "domain": "govwin-iq-chatbot.railway.app"
+        },
+        "customDomains": [
+          {
+            "domain": "chatbot.govwin.com",
+            "environment": "production"
+          },
+          {
+            "domain": "staging-chatbot.govwin.com", 
+            "environment": "staging"
+          }
+        ]
+      }
+    }
+  ],
+  "plugins": [
+    {
+      "name": "redis",
+      "type": "redis",
+      "plan": "hobby",
+      "config": {
+        "version": "7",
+        "maxMemory": "25mb",
+        "maxConnections": 20
+      },
+      "environments": ["production", "staging"]
+    },
+    {
+      "name": "postgresql",
+      "type": "postgresql",
+      "plan": "hobby",
+      "config": {
+        "version": "15",
+        "storage": "1GB",
+        "maxConnections": 20
+      },
+      "environments": ["production"]
+    }
+  ],
+  "cron": [
+    {
+      "name": "backup-database",
+      "schedule": "0 2 * * *",
+      "command": "npm run db:backup",
+      "timezone": "UTC",
+      "environments": ["production"]
+    },
+    {
+      "name": "cleanup-old-sessions",
+      "schedule": "0 */6 * * *",
+      "command": "npm run cache:clear",
+      "timezone": "UTC",
+      "environments": ["production", "staging"]
+    },
+    {
+      "name": "update-knowledge-base",
+      "schedule": "0 4 * * 1",
+      "command": "npm run knowledge:update",
+      "timezone": "UTC",
+      "environments": ["production"]
+    },
+    {
+      "name": "performance-test",
+      "schedule": "0 1 * * *",
+      "command": "npm run performance:test",
+      "timezone": "UTC",
+      "environments": ["staging"]
+    }
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "retention": "7d",
+      "structured": true,
+      "filters": [
+        {
+          "name": "errors",
+          "pattern": "ERROR|error|Error",
+          "color": "red"
+        },
+        {
+          "name": "warnings",
+          "pattern": "WARN|warn|Warning",
+          "color": "yellow"
+        },
+        {
+          "name": "agents",
+          "pattern": "agent|Agent|AGENT",
+          "color": "blue"
+        },
+        {
+          "name": "performance",
+          "pattern": "performance|Performance|PERFORMANCE",
+          "color": "green"
+        }
+      ]
+    },
+    "metrics": {
+      "enabled": true,
+      "custom": [
+        {
+          "name": "agent_response_time",
+          "type": "histogram",
+          "description": "Time taken for agent responses",
+          "labels": ["agent_id", "environment"]
+        },
+        {
+          "name": "routing_accuracy",
+          "type": "gauge",
+          "description": "Intent routing accuracy percentage",
+          "labels": ["environment"]
+        },
+        {
+          "name": "active_sessions",
+          "type": "gauge",
+          "description": "Number of active user sessions",
+          "labels": ["environment"]
+        },
+        {
+          "name": "rag_cache_hits",
+          "type": "counter",
+          "description": "Number of RAG cache hits",
+          "labels": ["cache_type", "environment"]
+        },
+        {
+          "name": "knowledge_base_queries",
+          "type": "counter",
+          "description": "Number of knowledge base queries",
+          "labels": ["category", "environment"]
+        }
+      ]
+    },
+    "traces": {
+      "enabled": false,
+      "sampleRate": 0.1,
+      "endpoint": "https://api.honeycomb.io"
+    }
+  },
+  "security": {
+    "secrets": [
+      {
+        "name": "GOVWIN_API_KEY",
+        "description": "GovWin IQ API authentication key",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "GOVWIN_CLIENT_SECRET", 
+        "description": "GovWin OAuth client secret",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "FEDERAL_API_KEY",
+        "description": "Federal data services API key",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "SAM_GOV_API_KEY",
+        "description": "SAM.gov API access key",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "SLED_API_KEY",
+        "description": "SLED markets API key",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "WEBHOOK_SECRET",
+        "description": "Webhook signature verification secret",
+        "environments": ["production", "staging"]
+      },
+      {
+        "name": "SMTP_PASS",
+        "description": "SMTP server password for email notifications",
+        "environments": ["production"]
+      },
+      {
+        "name": "SENTRY_DSN",
+        "description": "Sentry error tracking DSN",
+        "environments": ["production", "staging"]
+      }
+    ],
+    "networking": {
+      "allowedOrigins": [
+        "https://govwin.com",
+        "https://www.govwin.com",
+        "https://iq.govwin.com",
+        "https://staging.govwin.com",
+        "https://staging-iq.govwin.com"
+      ],
+      "ipWhitelist": [],
+      "rateLimiting": {
+        "enabled": true,
+        "requests": 1000,
+        "window": "15m",
+        "skipSuccessfulRequests": false
+      }
+    }
+  },
+  "ci": {
+    "buildCommand": "npm run build:production",
+    "testCommand": "npm run test",
+    "lintCommand": "npm run lint",
+    "auditCommand": "npm run security",
+    "beforeDeploy": [
+      "npm run validate:config",
+      "npm run test:agents",
+      "npm run health:check"
+    ],
+    "afterDeploy": [
+      "npm run test:health"
+    ]
+  },
+  "notifications": {
+    "deploy": {
+      "success": {
+        "webhook": "$DEPLOY_SUCCESS_WEBHOOK",
+        "email": "$DEPLOY_SUCCESS_EMAIL"
+      },
+      "failure": {
+        "webhook": "$DEPLOY_FAILURE_WEBHOOK", 
+        "email": "$DEPLOY_FAILURE_EMAIL"
+      }
+    },
+    "alerts": {
+      "webhook": "$ALERT_WEBHOOK_URL",
+      "email": "$ALERT_EMAIL_RECIPIENTS"
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "author": "Your Organization",
+    "repository": "https://github.com/your-org/govwin-iq-chatbot",
+    "documentation": "https://github.com/your-org/govwin-iq-chatbot/blob/main/README.md",
+    "tags": [
+      "govwin",
+      "chatbot",
+      "rag",
+      "multi-agent",
+      "government-contracting",
+      "node.js",
+      "ai"
+    ]
+  }
+}
