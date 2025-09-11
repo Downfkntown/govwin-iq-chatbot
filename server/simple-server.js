@@ -297,7 +297,7 @@ class AgentCoordinatedRAG {
     }
   }
 
-  deduplicateResults(results) {
+deduplicateResults(results) {
     const seen = new Set();
     return results.filter(result => {
       const key = `${result.id}-${result.title}`;
@@ -309,6 +309,41 @@ class AgentCoordinatedRAG {
     });
   }
 
+  detectBusinessIntent(query) {
+    const businessPatterns = [
+        // Finding opportunities
+        /find.*opportunit/i,
+        /search.*opportunit/i,
+        /look.*for.*contract/i,
+        /opportunities.*in/i,
+        
+        // Market research
+        /market.*trend/i,
+        /procurement.*trend/i,
+        /competitive.*analys/i,
+        /market.*analys/i,
+        
+        // Geographic + sector queries
+        /opportunit.*(?:california|texas|florida|new york)/i,
+        /(?:education|federal|state|local).*opportunit/i,
+        /technology.*procurement/i,
+        
+        // Help with business tasks
+        /help.*me.*find/i,
+        /how.*do.*i.*find/i,
+        /where.*can.*i.*find/i,
+        /who.*are.*the.*decision/i,
+        
+        // Specific business areas
+        /contracting.*in/i,
+        /procurement.*process/i,
+        /decision.*maker/i,
+        /competitive.*landscape/i
+    ];
+    
+    const queryLower = query.toLowerCase();
+    return businessPatterns.some(pattern => pattern.test(queryLower));
+  }    
   async processQuery(query, sessionId = null, context = {}) {
     const startTime = Date.now();
     
