@@ -7,6 +7,9 @@ const IntentPatterns = {
       /(?:federal|government\s+agency|GSA|DoD|FAR)/i,
       /(?:federal\s+contract|acquisition|compliance)/i,
       /(?:SEWP|CIO-SP3|government\s+wide)/i
+/(?:federal.*(?:opportunity|opportunities|modernization|IT))/i,
+/(?:government.*(?:technology|modernization|digital))/i,
+/(?:federal.*(?:budget|million|funding))/i
     ],
     weight: 0.9,
     agent: 'federal',
@@ -175,7 +178,7 @@ const ContextKeywords = {
 
 class IntentRouter {
   constructor() {
-    this.confidenceThreshold = 0.5;
+    this.confidenceThreshold = 0.35;
     this.multiAgentThreshold = 0.7;
     this.contextHistory = [];
     this.sessionContexts = new Map();
