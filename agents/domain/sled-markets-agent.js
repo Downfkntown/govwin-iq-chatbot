@@ -601,84 +601,251 @@ class SLEDMarketsAgent {
     }
 
     /**
-     * Process user query and provide specialized SLED guidance
-     */
-    async processQuery(query, context = {}) {
-        const queryLower = query.toLowerCase();
-        const userProfile = context.user || {};
+ * Process user query and provide GovWin Customer Success guidance
+ * Focus on understanding business intent and providing actionable search strategies
+ */
+async processQuery(query, context = {}) {
+    const queryLower = query.toLowerCase();
+    const userProfile = context.user || {};
+    
+    let response = {
+        agentId: this.agentId,
+        agentName: this.name,
+        query,
+        analysis: {},
+        recommendations: [],
+        resources: [],
+        nextSteps: [],
+        confidence: 0.85
+    };
+
+    try {
+        // Parse user business intent from query
+        const businessIntent = this.parseBusinessIntent(query);
         
-        let response = {
-            agentId: this.agentId,
-            agentName: this.name,
-            query,
-            analysis: {},
-            recommendations: [],
-            resources: [],
-            nextSteps: [],
-            confidence: 0.85
+        // Generate Customer Success response based on intent
+        response.content = this.generateCustomerSuccessResponse(businessIntent, query);
+        response.recommendations = this.generateGovWinActionSteps(businessIntent, query);
+        response.nextSteps = this.generateGovWinNextSteps(businessIntent, query);
+        response.resources = this.generateGovWinResources(businessIntent);
+        
+        return response;
+
+    } catch (error) {
+        console.error('SLED Markets Agent error:', error);
+        return {
+            ...response,
+            error: true,
+            content: 'I encountered an error helping you with your GovWin search. Please try rephrasing your question or contact support.',
+            confidence: 0.1
         };
-
-        try {
-            // Route to appropriate analysis based on query content
-            if (this.isStateProcurementQuery(queryLower)) {
-                response.analysis.stateProcurement = this.analyzeStateProcurement(query, [], userProfile);
-                response.recommendations.push(...this.generateStateProcurementRecommendations(response.analysis.stateProcurement));
-            }
-
-            if (this.isMunicipalQuery(queryLower)) {
-                const citySize = this.identifyCitySizeFromQuery(queryLower);
-                response.analysis.municipal = this.analyzeMunicipalProcurement(query, citySize, userProfile);
-                response.recommendations.push(...this.generateMunicipalRecommendations(response.analysis.municipal));
-            }
-
-            if (this.isEducationQuery(queryLower)) {
-                response.analysis.education = this.analyzeEducationSector(query, null, userProfile);
-                response.recommendations.push(...this.generateEducationRecommendations(response.analysis.education));
-            }
-
-            if (this.isSLEDSearchQuery(queryLower)) {
-                const targetMarkets = this.identifyTargetMarketsFromQuery(queryLower);
-                response.analysis.searchOptimization = this.optimizeSLEDSearch({ query, userProfile }, targetMarkets);
-                response.recommendations.push(...this.generateSearchRecommendations(response.analysis.searchOptimization));
-            }
-
-            if (this.isComplianceQuery(queryLower)) {
-                response.analysis.compliance = this.assessLocalCompliance(query, 'general', userProfile);
-                response.recommendations.push(...this.generateComplianceRecommendations(response.analysis.compliance));
-            }
-
-            if (this.isRegionalAnalysisQuery(queryLower)) {
-                response.analysis.regionalMarket = this.analyzeRegionalMarket(query, null, userProfile);
-                response.recommendations.push(...this.generateRegionalRecommendations(response.analysis.regionalMarket));
-            }
-
-            if (this.isCooperativeQuery(queryLower)) {
-                response.analysis.cooperative = this.identifyCooperativeOpportunities(query, userProfile);
-                response.recommendations.push(...this.generateCooperativeRecommendations(response.analysis.cooperative));
-            }
-
-            // Generate comprehensive response
-            response.content = this.generateSLEDResponse(response.analysis, query);
-            response.resources = this.generateSLEDResources(response.analysis);
-            response.nextSteps = this.generateSLEDNextSteps(response.analysis, userProfile);
-
-            // If no specific analysis matched, provide general SLED guidance
-            if (Object.keys(response.analysis).length === 0) {
-                response = this.generateGeneralSLEDGuidance(query, userProfile);
-            }
-
-            return response;
-
-        } catch (error) {
-            console.error('SLED Markets Agent error:', error);
-            return {
-                ...response,
-                error: true,
-                content: 'I encountered an error analyzing your SLED market query. Please try rephrasing your question or contact support.',
-                confidence: 0.1
-            };
-        }
     }
+}
+
+/**
+ * Parse business intent from user query
+ */
+parseBusinessIntent(query) {
+    const intent = {
+        type: 'general_guidance',
+        sector: [],
+        geography: [],
+        keywords: [],
+        needsHelp: 'navigation'
+    };
+
+    const queryLower = query.toLowerCase();
+
+    // Identify sectors
+    if (queryLower.includes('education') || queryLower.includes('school') || queryLower.includes('k-12') || queryLower.includes('university')) {
+        intent.sector.push('education');
+    }
+    if (queryLower.includes('state') || queryLower.includes('government')) {
+        intent.sector.push('state');
+    }
+    if (queryLower.includes('local') || queryLower.includes('city') || queryLower.includes('county') || queryLower.includes('municipal')) {
+        intent.sector.push('local');
+    }
+
+    // Identify geography
+    const states = ['california', 'texas', 'florida', 'new york', 'ohio', 'illinois', 'michigan', 'pennsylvania', 'north carolina', 'georgia'];
+    states.forEach(state => {
+        if (queryLower.includes(state)) {
+            intent.geography.push(state);
+        }
+    });
+
+    // Identify product/service keywords
+    if (queryLower.includes('technology') || queryLower.includes('tech') || queryLower.includes('it')) {
+        intent.keywords.push('technology', 'IT', 'tech');
+    }
+    if (queryLower.includes('procurement') || queryLower.includes('opportunities') || queryLower.includes('contracts')) {
+        intent.keywords.push('procurement', 'contracting');
+    }
+
+    // Determine intent type
+    if (queryLower.includes('find') || queryLower.includes('search') || queryLower.includes('opportunities')) {
+        intent.type = 'find_opportunities';
+    } else if (queryLower.includes('trends') || queryLower.includes('analysis') || queryLower.includes('market')) {
+        intent.type = 'market_research';
+    } else if (queryLower.includes('help') || queryLower.includes('how to')) {
+        intent.type = 'navigation_help';
+    }
+
+    return intent;
+}
+
+/**
+ * Generate Customer Success response focused on GovWin navigation
+ */
+generateCustomerSuccessResponse(businessIntent, originalQuery) {
+    let response = `I understand you're looking to ${this.translateIntentToAction(businessIntent)} in GovWin. Let me help you navigate the platform to find exactly what you need.\n\n`;
+
+    // Provide specific GovWin search strategy
+    response += `**Here's your GovWin search strategy:**\n\n`;
+
+    // Step 1: Access Advanced Search
+    response += `1. **Start with Advanced Search**\n`;
+    response += `   - Go to the main search bar in GovWin\n`;
+    response += `   - Click "Advanced Search" for more filtering options\n\n`;
+
+    // Step 2: Set sector filters
+    if (businessIntent.sector.length > 0) {
+        response += `2. **Set Sector Filters**\n`;
+        businessIntent.sector.forEach(sector => {
+            switch(sector) {
+                case 'education':
+                    response += `   - Select "Education" or "K-12" in the sector filter\n`;
+                    response += `   - Consider also checking "Higher Education" if relevant\n`;
+                    break;
+                case 'state':
+                    response += `   - Select "State Government" in the sector filter\n`;
+                    break;
+                case 'local':
+                    response += `   - Select "Local Government" or "Municipal" in the sector filter\n`;
+                    break;
+            }
+        });
+        response += `\n`;
+    }
+
+    // Step 3: Set geographic filters
+    if (businessIntent.geography.length > 0) {
+        response += `3. **Set Geographic Filters**\n`;
+        response += `   - Use the "Place of Performance" filter\n`;
+        businessIntent.geography.forEach(state => {
+            response += `   - Add "${state.charAt(0).toUpperCase() + state.slice(1)}" to your geographic search\n`;
+        });
+        response += `   - Consider setting up alerts for both states to monitor new opportunities\n\n`;
+    }
+
+    // Step 4: Use relevant keywords
+    if (businessIntent.keywords.length > 0) {
+        response += `4. **Use These Keywords**\n`;
+        response += `   - In the keyword search field, try: "${businessIntent.keywords.join('", "')}"\n`;
+        if (businessIntent.keywords.includes('technology')) {
+            response += `   - Also try related terms: "EdTech", "computers", "software", "digital"\n`;
+        }
+        response += `\n`;
+    }
+
+    // Step 5: Filter by opportunity characteristics
+    response += `5. **Filter by Opportunity Size & Type**\n`;
+    response += `   - Set opportunity value ranges based on your company's capacity\n`;
+    response += `   - Consider filtering by procurement stage (upcoming, active, awarded)\n`;
+    response += `   - Look for opportunities that match your past performance capability\n\n`;
+
+    return response;
+}
+
+/**
+ * Generate actionable GovWin steps
+ */
+generateGovWinActionSteps(businessIntent, query) {
+    const steps = [];
+
+    if (businessIntent.type === 'find_opportunities') {
+        steps.push("Execute the advanced search strategy I outlined above");
+        steps.push("Save your search criteria as a 'Saved Search' for future monitoring");
+        steps.push("Set up email alerts for new opportunities matching your criteria");
+        steps.push("Review the opportunity details and procurement timeline for qualified matches");
+    } else if (businessIntent.type === 'market_research') {
+        steps.push("Use the search strategy to identify current opportunities in your target market");
+        steps.push("Analyze the award history tab to understand competitive patterns");
+        steps.push("Review contract values and award patterns over time");
+        steps.push("Identify key decision makers and past winning vendors");
+    }
+
+    steps.push("Contact me if you need help refining your search or interpreting results");
+
+    return steps;
+}
+
+/**
+ * Generate specific next steps for GovWin success
+ */
+generateGovWinNextSteps(businessIntent, query) {
+    const nextSteps = [
+        "Execute the search strategy in GovWin using the filters I recommended",
+        "Review 5-10 opportunities that match your criteria",
+        "Set up automated email alerts for this search",
+        "Analyze the competitive landscape from recent awards"
+    ];
+
+    if (businessIntent.geography.length > 0) {
+        nextSteps.push(`Build relationships with procurement officials in ${businessIntent.geography.join(' and ')}`);
+    }
+
+    if (businessIntent.sector.includes('education')) {
+        nextSteps.push("Research education procurement cycles and budget calendars");
+        nextSteps.push("Consider attending education conferences and trade shows");
+    }
+
+    return nextSteps;
+}
+
+/**
+ * Generate GovWin-specific resources
+ */
+generateGovWinResources(businessIntent) {
+    const resources = [
+        {
+            title: 'GovWin Advanced Search Guide',
+            description: 'Step-by-step guide to using advanced search filters effectively'
+        },
+        {
+            title: 'Setting Up Opportunity Alerts',
+            description: 'How to create automated alerts for new opportunities'
+        },
+        {
+            title: 'Competitive Intelligence Dashboard',
+            description: 'Using GovWin to analyze competitors and win patterns'
+        }
+    ];
+
+    if (businessIntent.sector.includes('education')) {
+        resources.push({
+            title: 'Education Procurement Calendar',
+            description: 'Understanding K-12 and higher education budget cycles'
+        });
+    }
+
+    return resources;
+}
+
+/**
+ * Translate business intent to user-friendly action
+ */
+translateIntentToAction(businessIntent) {
+    if (businessIntent.type === 'find_opportunities') {
+        return `find ${businessIntent.sector.join(' and ')} opportunities${businessIntent.geography.length > 0 ? ' in ' + businessIntent.geography.join(' and ') : ''}`;
+    } else if (businessIntent.type === 'market_research') {
+        return `research market trends and opportunities${businessIntent.geography.length > 0 ? ' in ' + businessIntent.geography.join(' and ') : ''}`;
+    } else {
+        return 'navigate GovWin to find the right opportunities for your business';
+    }
+}
+
 
     /**
      * Query classification methods
