@@ -108,14 +108,14 @@
     "command": "npm run production"
   },
   "healthcheck": {
-    "path": "/api/v1/system/stats",  // Change from /health to /stats
+    "path": "/api/v1/system/stats",
     "timeout": 30
   },
   "environment": {
     "NODE_ENV": "production",
     "PORT": "$PORT"
   }
-}
+},
   "config": {
     "port": 3001,
     "stagingPort": 3002,
