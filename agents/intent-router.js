@@ -309,7 +309,7 @@ class IntentRouter {
       return this.getDefaultRouting();
     }
 
-    const [primaryAgent, primaryScore] = sortedScores[0];const [primaryAgent, primaryScore] = sortedScores[0];
+    const [primaryAgent, primaryScore] = sortedScores[0];
 
 // Multi-agent detection for complex queries
 let strategy = 'single';
