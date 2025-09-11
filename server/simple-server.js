@@ -310,40 +310,88 @@ deduplicateResults(results) {
   }
 
   detectBusinessIntent(query) {
-    const businessPatterns = [
-        // Finding opportunities
-        /find.*opportunit/i,
-        /search.*opportunit/i,
-        /look.*for.*contract/i,
-        /opportunities.*in/i,
-        
-        // Market research
-        /market.*trend/i,
-        /procurement.*trend/i,
-        /competitive.*analys/i,
-        /market.*analys/i,
-        
-        // Geographic + sector queries
-        /opportunit.*(?:california|texas|florida|new york)/i,
-        /(?:education|federal|state|local).*opportunit/i,
-        /technology.*procurement/i,
-        
-        // Help with business tasks
-        /help.*me.*find/i,
-        /how.*do.*i.*find/i,
-        /where.*can.*i.*find/i,
-        /who.*are.*the.*decision/i,
-        
-        // Specific business areas
-        /contracting.*in/i,
-        /procurement.*process/i,
-        /decision.*maker/i,
-        /competitive.*landscape/i
-    ];
+  const businessPatterns = [
+    // Opportunity finding (high priority business intent)
+    /find.*opportunit/i,
+    /search.*opportunit/i,
+    /look.*for.*contract/i,
+    /opportunities.*in/i,
+    /bidding.*on/i,
+    /procurement.*opportunit/i,
     
-    const queryLower = query.toLowerCase();
-    return businessPatterns.some(pattern => pattern.test(queryLower));
-  }    
+    // Market research and analysis
+    /market.*trend/i,
+    /procurement.*trend/i,
+    /competitive.*analys/i,
+    /market.*analys/i,
+    /pricing.*strateg/i,
+    /competitor.*analys/i,
+    
+    // Geographic + sector business queries
+    /opportunit.*(?:california|texas|florida|new york|virginia)/i,
+    /(?:education|federal|state|local).*opportunit/i,
+    /(?:education|federal|state|local).*procurement/i,
+    /technology.*procurement/i,
+    /government.*contract/i,
+    
+    // Business development tasks
+    /help.*me.*find/i,
+    /how.*do.*i.*find/i,
+    /where.*can.*i.*find/i,
+    /who.*are.*the.*decision/i,
+    /decision.*maker/i,
+    /procurement.*officer/i,
+    
+    // Contract and pricing analysis
+    /contracting.*in/i,
+    /procurement.*process/i,
+    /competitive.*landscape/i,
+    /contract.*analys/i,
+    /pricing.*for/i,
+    /cost.*analysis/i,
+    /proposal.*strateg/i,
+    
+    // Revenue and business impact
+    /budget.*over/i,
+    /million.*dollar/i,
+    /revenue.*opportunit/i,
+    /business.*development/i,
+    /sales.*strateg/i,
+    /win.*rate/i,
+    
+    // Industry-specific business terms
+    /cybersecurity.*contract/i,
+    /it.*modernization/i,
+    /cloud.*service/i,
+    /professional.*service/i,
+    /consulting.*opportunit/i
+  ];
+  
+  const queryLower = query.toLowerCase();
+  const hasBusinessIntent = businessPatterns.some(pattern => pattern.test(queryLower));
+  
+  // Additional context indicators
+  const hasMoneyContext = /\$|dollar|million|budget|cost|pric/i.test(queryLower);
+  const hasTimeContext = /deadline|timeline|due.*date|rfp|proposal/i.test(queryLower);
+  const hasCompetitiveContext = /compet|rival|market.*share|win.*rate/i.test(queryLower);
+  
+  // Boost confidence for queries with multiple business indicators
+  let businessScore = hasBusinessIntent ? 1 : 0;
+  if (hasMoneyContext) businessScore += 0.3;
+  if (hasTimeContext) businessScore += 0.2;
+  if (hasCompetitiveContext) businessScore += 0.2;
+  
+  return {
+    hasIntent: businessScore >= 1,
+    confidence: Math.min(businessScore, 1.5), // Cap at 1.5 for very strong business intent
+    indicators: {
+      patterns: hasBusinessIntent,
+      money: hasMoneyContext,
+      time: hasTimeContext,
+      competitive: hasCompetitiveContext
+    }
+  };
+}    
   async processQuery(query, sessionId = null, context = {}) {
     const startTime = Date.now();
     
@@ -764,6 +812,8 @@ app.post('/api/v1/chat/message', async (req, res) => {
     }
     
     // Check if we have coordinated response or high-confidence FAQ match
+// Detect business intent for priority routing
+const businessIntentResult = ragLayer.detectBusinessIntent(message);
     if (ragResult.coordinatedResponse) {
       // Use coordinated multi-agent response
       const responseData = {
@@ -808,44 +858,97 @@ app.post('/api/v1/chat/message', async (req, res) => {
       return res.json(responseData);
     }
     
-    if (ragResult.shouldUseFAQ) {
-      // High-confidence FAQ match with agent enhancement
-      const faqResponse = ragLayer.formatFAQResponse(ragResult);
-      const primaryAgent = ragResult.agentResponses[0];
-      
-      if (faqResponse && primaryAgent) {
-        const responseMessage = ragResult.confidence > 0.8 ? 
-          `I found exactly what you're looking for about "${message}":` :
-          ragResult.confidence > 0.5 ?
-          `Based on our knowledge base and ${primaryAgent.agentName} analysis:` :
-          `Here's relevant information with expert analysis:`;
-
-        return res.json({
-          ...faqResponse,
-          source: 'rag_with_agent',
-          message: responseMessage,
-          agentAnalysis: {
-            agent: primaryAgent.agentName,
-            perspective: primaryAgent.content,
-            recommendations: primaryAgent.recommendations,
-            confidence: primaryAgent.confidence
-          },
-          routing: {
-            selectedAgent: ragResult.routing.selectedAgent,
-            confidence: ragResult.routing.analysis?.confidence,
-            reasoning: ragResult.routing.metadata?.reasoning
-          },
-          sessionId: currentSessionId,
-          timestamp: new Date().toISOString(),
-          performance: {
-            totalTime: ragResult.totalTime,
-            searchTime: ragResult.searchTime,
-            confidence: ragResult.confidence,
-            matches: ragResult.stats
-          }
-        });
-      }
+    // Business Intent Override: For commercial queries, prioritize agents over FAQ
+if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) {
+  const primaryAgent = ragResult.agentResponses[0];
+  
+  console.log(`?? Business intent detected (confidence: ${businessIntentResult.confidence.toFixed(2)}) - prioritizing agent response over FAQ`);
+  
+  const businessAgentResponse = {
+    type: 'agent_response',
+    message: primaryAgent.content,
+    source: 'agent_business_priority',
+    agent: {
+      id: primaryAgent.agentId,
+      name: primaryAgent.agentName,
+      type: primaryAgent.agentType,
+      confidence: primaryAgent.confidence
+    },
+    recommendations: primaryAgent.recommendations,
+    businessIntent: {
+      detected: true,
+      confidence: businessIntentResult.confidence,
+      indicators: businessIntentResult.indicators
+    },
+    routing: {
+      selectedAgent: ragResult.routing.selectedAgent,
+      confidence: ragResult.routing.analysis?.confidence,
+      reasoning: `Business intent override: ${ragResult.routing.metadata?.reasoning}`,
+      intentType: ragResult.routing.analysis?.intentType
+    },
+    sessionId: currentSessionId,
+    timestamp: new Date().toISOString(),
+    performance: {
+      totalTime: ragResult.totalTime,
+      searchTime: ragResult.searchTime
     }
+  };
+
+  // Include FAQ context as supplementary information
+  if (ragResult.faqResults.length > 0) {
+    businessAgentResponse.knowledgeBase = {
+      matches: ragResult.faqResults.length,
+      supplementaryFAQs: ragResult.faqResults.slice(0, 2).map(r => ({
+        title: r.title,
+        category: r.category,
+        confidence: r.confidence
+      })),
+      note: "FAQ matches available but agent response prioritized for business query"
+    };
+  }
+
+  return res.json(businessAgentResponse);
+}
+
+// Standard FAQ response (for non-business queries with high FAQ confidence)
+if (ragResult.shouldUseFAQ && !businessIntentResult.hasIntent) {
+  // High-confidence FAQ match with agent enhancement
+  const faqResponse = ragLayer.formatFAQResponse(ragResult);
+  const primaryAgent = ragResult.agentResponses[0];
+  
+  if (faqResponse && primaryAgent) {
+    const responseMessage = ragResult.confidence > 0.8 ? 
+      `I found exactly what you're looking for about "${message}":` :
+      ragResult.confidence > 0.5 ?
+      `Based on our knowledge base and ${primaryAgent.agentName} analysis:` :
+      `Here's relevant information with expert analysis:`;
+
+    return res.json({
+      ...faqResponse,
+      source: 'rag_with_agent',
+      message: responseMessage,
+      agentAnalysis: {
+        agent: primaryAgent.agentName,
+        perspective: primaryAgent.content,
+        recommendations: primaryAgent.recommendations,
+        confidence: primaryAgent.confidence
+      },
+      routing: {
+        selectedAgent: ragResult.routing.selectedAgent,
+        confidence: ragResult.routing.analysis?.confidence,
+        reasoning: ragResult.routing.metadata?.reasoning
+      },
+      sessionId: currentSessionId,
+      timestamp: new Date().toISOString(),
+      performance: {
+        totalTime: ragResult.totalTime,
+        searchTime: ragResult.searchTime,
+        confidence: ragResult.confidence,
+        matches: ragResult.stats
+      }
+    });
+  }
+}
 
     // Agent response without high-confidence FAQ
     if (ragResult.agentResponses.length > 0) {
