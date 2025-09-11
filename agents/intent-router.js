@@ -7,7 +7,6 @@ const IntentPatterns = {
   /(?:federal|government\s+agency|GSA|DoD|FAR)/i,
   /(?:federal\s+contract|acquisition|compliance)/i,
   /(?:SEWP|CIO-SP3|government\s+wide)/i
-],
     ],
     weight: 0.9,
     agent: 'federal',

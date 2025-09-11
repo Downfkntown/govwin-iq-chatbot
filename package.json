@@ -100,22 +100,22 @@
     "url": "https://github.com/your-org/govwin-iq-chatbot/issues"
   },
   "homepage": "https://github.com/your-org/govwin-iq-chatbot#readme",
-  "railway": {
-    "build": {
-      "command": "echo 'Build complete - using simple deployment'"
-    },
-    "start": {
-      "command": "npm run production"
-    },
-    "healthcheck": {
-      "path": "/api/v1/system/health",
-      "timeout": 30
-    },
-    "environment": {
-      "NODE_ENV": "production",
-      "PORT": "$PORT"
-    }
+"railway": {
+  "build": {
+    "command": "echo 'Build complete - using simple deployment'"
   },
+  "start": {
+    "command": "npm run production"
+  },
+  "healthcheck": {
+    "path": "/api/v1/system/stats",  // Change from /health to /stats
+    "timeout": 30
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "$PORT"
+  }
+}
   "config": {
     "port": 3001,
     "stagingPort": 3002,
