@@ -872,8 +872,14 @@ const businessIntentResult = ragLayer.detectBusinessIntent(message);
     }
     
     // Business Intent Override: For commercial queries, prioritize agents over FAQ
-if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) {
-  const primaryAgent = ragResult.agentResponses[0];
+// Check for multi-agent coordination first
+if (ragResult.routing.routing?.strategy === 'multi' && businessIntentResult.hasIntent) {
+  // Multi-agent business query - use coordination
+  console.log(`🎯 Multi-agent business query detected - coordinating ${ragResult.routing.fallbackAgents?.length + 1} agents`);
+  
+  // Let the existing coordination logic handle this
+  // Don't override with single agent response
+} else if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) 
   
   console.log(`?? Business intent detected (confidence: ${businessIntentResult.confidence.toFixed(2)}) - prioritizing agent response over FAQ`);
   
@@ -884,8 +890,7 @@ if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) {
     agent: {
       id: primaryAgent.agentId,
       name: primaryAgent.agentName,
-      type: primaryAgent.agentType,
-      confidence: primaryAgent.confidence
+      type: primaryAgent.agentType,      confidence: primaryAgent.confidence
     },
     recommendations: primaryAgent.recommendations,
     businessIntent: {
