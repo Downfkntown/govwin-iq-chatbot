@@ -4,12 +4,10 @@ const IntentPatterns = {
   // Domain-specific intents
   FEDERAL_INTENT: {
     patterns: [
-      /(?:federal|government\s+agency|GSA|DoD|FAR)/i,
-      /(?:federal\s+contract|acquisition|compliance)/i,
-      /(?:SEWP|CIO-SP3|government\s+wide)/i
-/(?:federal.*(?:opportunity|opportunities|modernization|IT))/i,
-/(?:government.*(?:technology|modernization|digital))/i,
-/(?:federal.*(?:budget|million|funding))/i
+  /(?:federal|government\s+agency|GSA|DoD|FAR)/i,
+  /(?:federal\s+contract|acquisition|compliance)/i,
+  /(?:SEWP|CIO-SP3|government\s+wide)/i
+],
     ],
     weight: 0.9,
     agent: 'federal',
