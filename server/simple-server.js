@@ -879,7 +879,7 @@ if (ragResult.routing.routing?.strategy === 'multi' && businessIntentResult.hasI
   
   // Let the existing coordination logic handle this
   // Don't override with single agent response
-} else if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) 
+} else if (businessIntentResult.hasIntent && ragResult.agentResponses.length > 0) {
   
   console.log(`?? Business intent detected (confidence: ${businessIntentResult.confidence.toFixed(2)}) - prioritizing agent response over FAQ`);
   
