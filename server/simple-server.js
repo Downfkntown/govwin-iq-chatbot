@@ -318,6 +318,19 @@ deduplicateResults(results) {
     /opportunities.*in/i,
     /bidding.*on/i,
     /procurement.*opportunit/i,
+
+// Workflow and automation requests (high business value)
+/set.*up.*alert/i,
+/create.*alert/i,
+/setup.*alert/i,
+/monitor.*opportunit/i,
+/track.*opportunit/i,
+/notification.*for/i,
+/get.*notif/i,
+/save.*search/i,
+/automat.*search/i,
+/alert.*me/i,
+/notify.*me/i,
     
     // Market research and analysis
     /market.*trend/i,
