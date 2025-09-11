@@ -928,11 +928,12 @@ if (ragResult.routing.routing?.strategy === 'multi' && businessIntentResult.hasI
   return res.json(businessAgentResponse);
 }
 
+const primaryAgent = ragResult.agentResponses.length > 0 ? ragResult.agentResponses[0] : null;
 // Standard FAQ response (for non-business queries with high FAQ confidence)
 if (ragResult.shouldUseFAQ && !businessIntentResult.hasIntent) {
   // High-confidence FAQ match with agent enhancement
   const faqResponse = ragLayer.formatFAQResponse(ragResult);
-  const primaryAgent = ragResult.agentResponses[0];
+  
   
   if (faqResponse && primaryAgent) {
     const responseMessage = ragResult.confidence > 0.8 ? 
@@ -970,7 +971,7 @@ if (ragResult.shouldUseFAQ && !businessIntentResult.hasIntent) {
 
     // Agent response without high-confidence FAQ
     if (ragResult.agentResponses.length > 0) {
-      const primaryAgent = ragResult.agentResponses[0];
+      
       
       const agentResponse = {
         type: 'agent_response',
