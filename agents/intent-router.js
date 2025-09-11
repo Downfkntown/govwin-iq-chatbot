@@ -309,17 +309,43 @@ class IntentRouter {
       return this.getDefaultRouting();
     }
 
-    const [primaryAgent, primaryScore] = sortedScores[0];
-    
-    const routing = {
-      strategy: 'single',
-      primary: {
-        agent: primaryAgent,
-        confidence: Math.min(primaryScore, 1.0)
-      },
-      secondary: [],
-      reasoning: this.generateRoutingReasoning(primaryAgent, primaryScore, analysis)
-    };
+    const [primaryAgent, primaryScore] = sortedScores[0];const [primaryAgent, primaryScore] = sortedScores[0];
+
+// Multi-agent detection for complex queries
+let strategy = 'single';
+let secondaryAgents = [];
+
+// Check if query needs multiple domains
+const queryLower = analysis.normalizedInput.toLowerCase();
+const needsMultipleDomains = (
+  (queryLower.includes('federal') && queryLower.includes('state')) ||
+  (queryLower.includes('relationship') && (queryLower.includes('federal') || queryLower.includes('sled'))) ||
+  (queryLower.includes('competitive') && queryLower.includes('opportunit')) ||
+  (queryLower.includes('both') && (queryLower.includes('federal') || queryLower.includes('state')))
+);
+
+// If multiple high-scoring agents or explicit multi-domain request
+if (needsMultipleDomains || sortedScores.length >= 2) {
+  const secondScore = sortedScores[1] ? sortedScores[1][1] : 0;
+  if (needsMultipleDomains || (secondScore >= 0.3 && secondScore >= primaryScore * 0.7)) {
+    strategy = 'multi';
+    secondaryAgents = sortedScores.slice(1, 3).map(([agent, score]) => ({
+      agent,
+      confidence: Math.min(score, 1.0)
+    }));
+  }
+}
+
+const routing = {
+  strategy: strategy,  // ← Now dynamic!
+  primary: {
+    agent: primaryAgent,
+    confidence: Math.min(primaryScore, 1.0)
+  },
+  secondary: secondaryAgents,  // ← Now populated!
+  reasoning: this.generateRoutingReasoning(primaryAgent, primaryScore, analysis)
+}    
+   
 
     // Check for multi-agent routing
     if (primaryScore >= this.multiAgentThreshold && sortedScores.length > 1) {
