@@ -147,17 +147,6 @@ class RailwayGovWinCSMServer {
     }
 
     setupErrorHandling() {
-        this.app.use('*', (req, res) => {
-            res.status(404).json({
-                error: 'Route not found',
-                path: req.originalUrl,
-                availableEndpoints: [
-                    'GET /health',
-                    'GET /api/v1/system/status', 
-                    'POST /api/v1/chat/message'
-                ]
-            });
-        });
 
         this.app.use((error, req, res, next) => {
             console.error('Unhandled error:', error);
