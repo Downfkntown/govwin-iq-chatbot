@@ -439,4 +439,4 @@ if (require.main === module) {
 
 console.log('🚂 RAILWAY DEBUG: About to export RailwayProductionServer class');
 module.exports = RailwayProductionServer;
-console.log('🚂 RAILWAY DEBUG: Railway module export complete');
+console.log('🚂 RAILWAY DEBUG: Railway module export complete');# Force Railway redeploy Fri, Sep 12, 2025  5:30:29 PM
