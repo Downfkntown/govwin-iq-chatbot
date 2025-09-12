@@ -63,26 +63,18 @@ this.app.get('/api/v1/system/health', (req, res) => {
         });
 
 this.app.get('/api/v1/system/status', (req, res) => {
-    res.json({
-        service: 'GovWin CSM - Railway Production',
-        version: '1.0.0',
-        status: 'operational',
-        timestamp: new Date().toISOString(),
-        deployment: {
-            platform: 'railway',
-            environment: process.env.NODE_ENV || 'development',
-            port: process.env.PORT || 3000
-        }
-    });
-});            } catch (error) {
-                res.status(500).json({
-                    service: 'GovWin CSM - Railway Production',
-                    status: 'error',
-                    error: error.message
-                });
-            }
+            res.json({
+                service: 'GovWin CSM - Railway Production',
+                version: '1.0.0',
+                status: 'operational',
+                timestamp: new Date().toISOString(),
+                deployment: {
+                    platform: 'railway',
+                    environment: process.env.NODE_ENV || 'development',
+                    port: process.env.PORT || 3000
+                }
+            });
         });
-
         this.app.post('/api/v1/chat/message', async (req, res) => {
             try {
                 const { message, userId, sessionId } = req.body;
