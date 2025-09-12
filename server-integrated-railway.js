@@ -51,7 +51,7 @@ class RailwayGovWinCSMServer {
     }
 
     setupRoutes() {
-        this.app.get('/health', (req, res) => {
+this.app.get('/api/v1/system/health', (req, res) => {        
             res.json({
                 status: 'ok',
                 timestamp: new Date().toISOString(),
