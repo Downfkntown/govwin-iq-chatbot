@@ -782,6 +782,26 @@ app.get('/api/v1/system/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+
+// Simple health check endpoint (for load balancers)
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'GovWin IQ Chatbot'
+  });
+});
+
+// System status endpoint (alternative path)
+app.get('/api/v1/system/status', (req, res) => {
+  res.json({ 
+    status: 'operational',
+    version: '1.0.0',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    service: 'GovWin IQ Chatbot API'
+  });
+});
 app.post('/api/v1/chat/message', async (req, res) => {
   try {
     const { message, context = {}, sessionId } = req.body;
