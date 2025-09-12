@@ -51,7 +51,8 @@ class RailwayGovWinCSMServer {
     }
 
     setupRoutes() {
-this.app.get('/api/v1/system/health', (req, res) => {        
+        // Health endpoint
+        this.app.get('/api/v1/system/health', (req, res) => {
             res.json({
                 status: 'ok',
                 timestamp: new Date().toISOString(),
@@ -62,7 +63,8 @@ this.app.get('/api/v1/system/health', (req, res) => {
             });
         });
 
-this.app.get('/api/v1/system/status', (req, res) => {
+        // Status endpoint
+        this.app.get('/api/v1/system/status', (req, res) => {
             res.json({
                 service: 'GovWin CSM - Railway Production',
                 version: '1.0.0',
@@ -75,6 +77,8 @@ this.app.get('/api/v1/system/status', (req, res) => {
                 }
             });
         });
+
+        // Chat message endpoint
         this.app.post('/api/v1/chat/message', async (req, res) => {
             try {
                 const { message, userId, sessionId } = req.body;
@@ -131,7 +135,6 @@ this.app.get('/api/v1/system/status', (req, res) => {
     }
 
     setupErrorHandling() {
-
         this.app.use((error, req, res, next) => {
             console.error('Unhandled error:', error);
             res.status(500).json({
@@ -242,4 +245,3 @@ if (require.main === module) {
 }
 
 module.exports = RailwayGovWinCSMServer;
-// Health endpoints fix deployed Fri, Sep 12, 2025  4:10:44 PM
