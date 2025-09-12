@@ -62,27 +62,19 @@ this.app.get('/api/v1/system/health', (req, res) => {
             });
         });
 
-        this.app.get('/api/v1/system/status', async (req, res) => {
-            try {
-                const metrics = this.csmCoordinator ? await this.csmCoordinator.getMetrics() : null;
-                
-                res.json({
-                    service: 'GovWin CSM - Railway Production',
-                    version: '1.0.0',
-                    status: this.csmCoordinator ? 'operational' : 'initializing',
-                    timestamp: new Date().toISOString(),
-                    deployment: {
-                        platform: 'railway',
-                        environment: process.env.NODE_ENV || 'development',
-                        port: process.env.PORT || 3000
-                    },
-                    metrics: metrics,
-                    integration: {
-                        existingAgentsLoaded: metrics?.existingAgents || [],
-                        bridgeStatus: 'operational'
-                    }
-                });
-            } catch (error) {
+this.app.get('/api/v1/system/status', (req, res) => {
+    res.json({
+        service: 'GovWin CSM - Railway Production',
+        version: '1.0.0',
+        status: 'operational',
+        timestamp: new Date().toISOString(),
+        deployment: {
+            platform: 'railway',
+            environment: process.env.NODE_ENV || 'development',
+            port: process.env.PORT || 3000
+        }
+    });
+});            } catch (error) {
                 res.status(500).json({
                     service: 'GovWin CSM - Railway Production',
                     status: 'error',
