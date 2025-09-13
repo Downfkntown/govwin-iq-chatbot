@@ -4,10 +4,21 @@
 This guide covers deploying the GovWin IQ Customer Success Chatbot with 2-agent architecture to Vercel.
 
 ## Architecture
-- **Single-file deployment** using `railway-single-deployment.js`
+- **Serverless deployment** using `api/railway-single-deployment.js`
 - **2-Agent System**:
   - Search & Navigation Agent: Guides users through GovWin's search tools
   - Customer Success Agent: Platform navigation, troubleshooting, escalation
+
+## File Structure
+```
+govwin-iq-chatbot/
+├── api/
+│   └── index.js                      # Main serverless function
+├── vercel.json                       # Vercel configuration
+├── package.json                      # Dependencies and scripts
+├── railway-single-deployment.js     # Original file (kept for reference)
+└── VERCEL_DEPLOYMENT.md             # This guide
+```
 
 ## Prerequisites
 - GitHub account with repository access
@@ -56,39 +67,14 @@ vercel --prod
 {
   "version": 2,
   "name": "govwin-iq-chatbot",
-  "builds": [
+  "rewrites": [
     {
-      "src": "railway-single-deployment.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/v1/system/health",
-      "dest": "/railway-single-deployment.js"
-    },
-    {
-      "src": "/api/v1/system/status", 
-      "dest": "/railway-single-deployment.js"
-    },
-    {
-      "src": "/api/v1/chat/message",
-      "dest": "/railway-single-deployment.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/railway-single-deployment.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/railway-single-deployment.js"
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
   ],
   "functions": {
-    "railway-single-deployment.js": {
+    "api/index.js": {
       "maxDuration": 30
     }
   }

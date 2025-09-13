@@ -2,7 +2,7 @@
   "name": "govwin-iq-chatbot",
   "version": "1.0.0",
   "description": "GovWin IQ Customer Success Manager Chatbot - Railway Production",
-  "main": "railway-single-deployment.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node railway-single-deployment.js",
     "production": "NODE_ENV=production node railway-single-deployment.js",

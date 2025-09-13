@@ -3,31 +3,12 @@
   "name": "govwin-iq-chatbot",
   "rewrites": [
     {
-      "source": "/api/v1/system/health",
-      "destination": "/api/railway-single-deployment"
-    },
-    {
-      "source": "/api/v1/system/status",
-      "destination": "/api/railway-single-deployment"
-    },
-    {
-      "source": "/api/v1/chat/message",
-      "destination": "/api/railway-single-deployment"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/railway-single-deployment"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/api/railway-single-deployment"
+      "destination": "/api/index"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "functions": {
-    "api/railway-single-deployment.js": {
+    "api/index.js": {
       "maxDuration": 30
     }
   }
