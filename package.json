@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node railway-single-deployment.js",
     "production": "NODE_ENV=production node railway-single-deployment.js",
-    "single-deploy": "node railway-single-deployment.js"
+    "single-deploy": "node railway-single-deployment.js",
+    "vercel-build": "echo 'Build completed'",
+    "build": "echo 'Build step for Vercel deployment'"
   },
   "dependencies": {
     "redis": "^4.6.0",

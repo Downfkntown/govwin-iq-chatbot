@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(touch:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm install)",
+      "Bash(timeout 10s npm start)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
