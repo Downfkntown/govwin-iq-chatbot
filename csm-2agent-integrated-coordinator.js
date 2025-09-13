@@ -8,7 +8,7 @@
  * Philosophy: Teach users HOW to use GovWin's built-in features, don't replicate them
  */
 
-const CSM2AgentCoordinator = require('../agents/csm-2agent-coordinator');
+const CSM2AgentCoordinator = require('./agents/csm-2agent-coordinator');
 
 class CSM2AgentIntegratedCoordinator {
     constructor(redisClient, logger, config) {

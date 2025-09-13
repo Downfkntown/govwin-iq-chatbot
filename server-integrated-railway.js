@@ -7,14 +7,8 @@ const rateLimit = require('express-rate-limit');
 // Import components - use the integrated coordinator
 const { DatabaseConfig, AppConfig, RedisClient, Logger } = require('./lib/infrastructure');
 
-// Try to import the integrated coordinator, fall back to simple if not available
-let CSMCoordinator;
-try {
-    CSMCoordinator = require('./lib/integrated-csm-coordinator');
-} catch (error) {
-    console.log('Using basic coordinator as fallback');
-    CSMCoordinator = require('./lib/basic-csm-coordinator').BasicCSMCoordinator;
-}
+// Use the consolidated 2-agent integrated coordinator
+const CSM2AgentIntegratedCoordinator = require('./lib/csm-2agent-integrated-coordinator');
 
 class RailwayGovWinCSMServer {
     constructor() {
@@ -161,8 +155,8 @@ class RailwayGovWinCSMServer {
                 await this.redisClient.connect();
             }
             
-            // Initialize CSM coordinator
-            this.csmCoordinator = new CSMCoordinator(
+            // Initialize CSM 2-agent coordinator
+            this.csmCoordinator = new CSM2AgentIntegratedCoordinator(
                 this.redisClient,
                 this.logger,
                 this.appConfig.getAll()
