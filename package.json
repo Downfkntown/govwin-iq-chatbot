@@ -2,7 +2,7 @@
   "name": "govwin-iq-chatbot",
   "version": "1.0.0",
   "description": "GovWin IQ Customer Success Manager Chatbot - Railway Production",
-  "main": "csm-2agent-integrated-coordinator.js",
+  "main": "lib/csm-2agent-integrated-coordinator.js",
   "scripts": {
     "start": "node csm-2agent-integrated-coordinator.js",
     "production": "NODE_ENV=production node csm-2agent-integrated-coordinator.js"
