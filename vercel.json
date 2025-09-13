@@ -1,42 +1,33 @@
 {
   "version": 2,
   "name": "govwin-iq-chatbot",
-  "builds": [
+  "rewrites": [
     {
-      "src": "railway-single-deployment.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/v1/system/health",
-      "dest": "/railway-single-deployment.js"
+      "source": "/api/v1/system/health",
+      "destination": "/api/railway-single-deployment"
     },
     {
-      "src": "/api/v1/system/status",
-      "dest": "/railway-single-deployment.js"
+      "source": "/api/v1/system/status",
+      "destination": "/api/railway-single-deployment"
     },
     {
-      "src": "/api/v1/chat/message",
-      "dest": "/railway-single-deployment.js"
+      "source": "/api/v1/chat/message",
+      "destination": "/api/railway-single-deployment"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/railway-single-deployment.js"
+      "source": "/api/(.*)",
+      "destination": "/api/railway-single-deployment"
     },
     {
-      "src": "/(.*)",
-      "dest": "/railway-single-deployment.js"
+      "source": "/(.*)",
+      "destination": "/api/railway-single-deployment"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
   "functions": {
-    "railway-single-deployment.js": {
+    "api/railway-single-deployment.js": {
       "maxDuration": 30
     }
   }
